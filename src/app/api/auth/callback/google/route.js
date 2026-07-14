@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectMongo from "@/src/lib/mongo";
 import User from "@/src/models/User";
+import axios from 'axios';
 
 function getRedirectUri(request) {
   const configured = process.env.GOOGLE_OAUTH_REDIRECT_URL || process.env.Google_OAUTH_REDIRECT_URL;
@@ -33,13 +34,13 @@ async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
     grant_type: "authorization_code",
   });
 
-  const response = await fetch("https://oauth2.googleapis.com/token", {
+  const response = await axios("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
+    data: params.toString(),
   });
 
-  const data = await response.json();
+  const data = await response.data;
 
   if (!response.ok || data.error) {
     throw new Error(data.error_description || data.error || "Unable to exchange auth code.");
@@ -49,11 +50,11 @@ async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
 }
 
 async function verifyGoogleToken(accessToken, clientId) {
-  const response = await fetch(
+  const response = await axios(
     `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
   );
 
-  const data = await response.json();
+  const data = await response.data;
 
   if (!response.ok || data.error) {
     throw new Error("The Google authentication token is invalid.");
@@ -76,11 +77,11 @@ async function verifyGoogleToken(accessToken, clientId) {
 }
 
 async function getProfile(accessToken) {
-  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+  const response = await axios("https://www.googleapis.com/oauth2/v3/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
-  const data = await response.json();
+  const data = await response.data;
 
   if (!response.ok) {
     throw new Error("Unable to fetch Google profile.");

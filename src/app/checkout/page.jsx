@@ -78,12 +78,12 @@ export default function Checkout() {
       setTaxLoading(true);
       try {
         const items = cart.map((i) => ({ sku: i.sku, qty: i.qty, price: i.part.price, hasMotor: i.part.hasMotor }));
-        const res = await fetch('/api/tax-and-shipping', {
+        const res = await axios('/api/tax-and-shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ state: formData.state, shippingMethod, items, subtotal }),
+          data: JSON.stringify({ state: formData.state, shippingMethod, items, subtotal }),
         });
-        const data = await res.json();
+        const data = await res.data;
         if (data?.ok) setTaxData(data);
       } catch (err) {
         console.error('tax calc error', err);
@@ -98,12 +98,12 @@ export default function Checkout() {
   const verifyGstin = async () => {
     if (!formData.gstin) return toast.error('Enter GSTIN to verify');
     try {
-      const res = await fetch('/api/gst/verify', {
+      const res = await axios('/api/gst/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gstin: formData.gstin.trim() }),
+        data: JSON.stringify({ gstin: formData.gstin.trim() }),
       });
-      const data = await res.json();
+      const data = await res.data;
       setGstVerification(data);
       if (data?.ok && (data.valid || data.data)) {
         toast.success('GSTIN looks valid');
