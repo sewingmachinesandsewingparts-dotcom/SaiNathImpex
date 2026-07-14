@@ -15,16 +15,16 @@ const uploadsDir = path.resolve("uploads");
 
 export async function saveUploadedImages(files, folder = "Home/Products") {
   if (!Array.isArray(files) || files.length === 0) {
-    console.log('[lib/part] saveUploadedImages called with empty files');
+    console.log("[lib/part] saveUploadedImages called with empty files");
     return [];
   }
-  console.log('[lib/part] saveUploadedImages files count:', files.length);
+  console.log("[lib/part] saveUploadedImages files count:", files.length);
   await fs.promises.mkdir(uploadsDir, { recursive: true });
 
   const uploadedUrls = [];
   for (const file of files) {
     if (!file || typeof file.size !== "number" || file.size === 0) {
-      console.log('[lib/part] skipping invalid file', file && (file.name || typeof file));
+      console.log("[lib/part] skipping invalid file", file && (file.name || typeof file));
       continue;
     }
     const tempPath = path.join(uploadsDir, `${Date.now()}-${safeString(file.name)}`);
@@ -34,7 +34,7 @@ export async function saveUploadedImages(files, folder = "Home/Products") {
     uploadedUrls.push(uploaded.secure_url || uploaded.url || "");
     await fs.promises.unlink(tempPath).catch(() => null);
   }
-  console.log('[lib/part] uploadedUrls:', uploadedUrls.length, uploadedUrls);
+  console.log("[lib/part] uploadedUrls:", uploadedUrls.length, uploadedUrls);
   return uploadedUrls;
 }
 
@@ -88,7 +88,17 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
   };
 }
 
-export function buildPartFilter({ q, brand, category, stitchType, minPrice, maxPrice, inStockOnly, onSale, nameOnly }) {
+export function buildPartFilter({
+  q,
+  brand,
+  category,
+  stitchType,
+  minPrice,
+  maxPrice,
+  inStockOnly,
+  onSale,
+  nameOnly,
+}) {
   const filter = {};
   if (q) {
     const escapedSearch = escapeRegExp(q);
@@ -218,22 +228,35 @@ export function createPartPayload(values, uploadedUrls, brandData) {
   };
 }
 
-export function buildPartUpdateData(existingPart, formData, uploadedUrls, deletedImageUrls, brandData = {}) {
+export function buildPartUpdateData(
+  existingPart,
+  formData,
+  uploadedUrls,
+  deletedImageUrls,
+  brandData = {},
+) {
   const values = parsePartFormData(formData);
   const imageList = existingPart.images?.filter((img) => !deletedImageUrls.includes(img)) || [];
 
   return {
+    sku: values.sku || existingPart.sku,
     name: values.name || existingPart.name,
     description: values.description || existingPart.description,
     diagramNumber: values.diagramNumber || existingPart.diagramNumber,
     id1: values.id1 || existingPart.id1,
     id2: values.id2 || existingPart.id2,
-    altPartNumbers: values.altPartNumbers.length ? values.altPartNumbers : existingPart.altPartNumbers,
+    altPartNumbers: values.altPartNumbers.length
+      ? values.altPartNumbers
+      : existingPart.altPartNumbers,
     compat: {
-      machineModels: values.compatMachineModels.length ? values.compatMachineModels : existingPart.compat.machineModels,
+      machineModels: values.compatMachineModels.length
+        ? values.compatMachineModels
+        : existingPart.compat.machineModels,
       needleSystem: values.compatNeedleSystem || existingPart.compat.needleSystem,
       threadType: values.compatThreadType || existingPart.compat.threadType,
-      stitchType: values.compatStitchType ? [values.compatStitchType] : existingPart.compat.stitchType,
+      stitchType: values.compatStitchType
+        ? [values.compatStitchType]
+        : existingPart.compat.stitchType,
     },
     specs: {
       material: values.specsMaterial || existingPart.specs.material,

@@ -21,8 +21,22 @@ function getAbbreviation(value, maxLetters) {
   return words.slice(0, Math.min(words.length, maxLetters)).join("");
 }
 
+const CATEGORY_ABBREVIATIONS = {
+  "eye guard": "EYE",
+  puller: "PUL",
+  "puller case": "PUC",
+  "puller case suit": "PCS",
+  bobbin: "BOB",
+  "bobbin case": "BCA",
+  "bobbin case suit": "BCS",
+};
+
 function getCategoryAbbreviation(category) {
-  return getAbbreviation(category, 2);
+  const normalized = String(category || "").trim().toLowerCase();
+  if (CATEGORY_ABBREVIATIONS[normalized]) {
+    return CATEGORY_ABBREVIATIONS[normalized];
+  }
+  return getAbbreviation(category, 3);
 }
 
 function getBrandAbbreviation(brand) {

@@ -4,9 +4,35 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Upload, Save, X } from "lucide-react";
 import { AdminShell } from "@/src/components/admin-shell";
-import axios from 'axios';
+import axios from "axios";
+import { buildProductName, buildSku } from "@/src/lib/sku";
 
 const CATEGORY_OPTIONS = ["Eye Guard", "Puller", "Folder", "Needle Plate", "Presser Foot", "Motor"];
+
+function extractPartCodeFromSku(sku, seriesCode, hasBrand) {
+  if (!sku) return "";
+  const parts = sku.split("-");
+  const searchSeries = String(seriesCode || "").trim().toUpperCase();
+
+  if (searchSeries && parts.length >= 3 && parts[parts.length - 1].toUpperCase() === searchSeries) {
+    return parts[parts.length - 2] || "";
+  }
+
+  let modelSeries = "";
+  if (hasBrand) {
+    modelSeries = parts.length >= 3 ? parts[2] : "";
+  } else {
+    modelSeries = parts.length >= 2 ? parts[1] : "";
+  }
+
+  if (!modelSeries) return "";
+  const upperModelSeries = modelSeries.toUpperCase();
+  if (searchSeries && upperModelSeries.endsWith(searchSeries)) {
+    return modelSeries.slice(0, modelSeries.length - searchSeries.length);
+  }
+
+  return modelSeries;
+}
 
 function normalizeSku(value) {
   let skuValue = Array.isArray(value) ? value.join("/") : value;
@@ -40,7 +66,7 @@ export default function EditProductPage() {
   const [modelCreateValue, setModelCreateValue] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryCreateValue, setCategoryCreateValue] = useState("");
-  
+  const [partCode, setPartCode] = useState("");
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -89,6 +115,12 @@ export default function EditProductPage() {
     const isKnownCategory = categoryRoot && CATEGORY_OPTIONS.includes(categoryRoot);
     setSelectedCategory(isKnownCategory ? categoryRoot : categoryRoot ? "+ Create new" : "");
     setCategoryCreateValue(isKnownCategory ? "" : categoryRoot);
+
+    const initialSeriesCode = product.id1?.trim() || "";
+    const initialPartCode = product.brandName?.trim()
+      ? extractPartCodeFromSku(product.sku, initialSeriesCode, true)
+      : product.id1?.trim() || extractPartCodeFromSku(product.sku, initialSeriesCode, false);
+    setPartCode(initialPartCode);
   }, [product, brandRecords]);
 
   const handleImageChange = (event, index) => {
@@ -123,12 +155,24 @@ export default function EditProductPage() {
         deletedImages.forEach((url) => form.append("deletedImageUrls", url));
       }
 
+      const explicitPartCode = form.get("partCode")?.toString().trim();
       const explicitBrandName = form.get("brandName")?.toString().trim();
-      const resolvedBrandName = explicitBrandName || (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
-      const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
-      const categoryText = selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
+      const resolvedBrandName =
+        explicitBrandName ||
+        (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
+      const resolvedModelName =
+        selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
+      const categoryText =
+        selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
+      const seriesCode = form.get("id1")?.toString().trim();
+      const iscCode = form.get("id2")?.toString().trim();
+      const hasBrandName = Boolean(resolvedBrandName);
+      const parsedPartCode = hasBrandName
+        ? extractPartCodeFromSku(product.sku, seriesCode, true)
+        : product.id1?.trim() || extractPartCodeFromSku(product.sku, seriesCode, false);
+      const resolvedPartCode = explicitPartCode || parsedPartCode || "";
 
-      if (!resolvedBrandName) {
+      if (mode === "brand" && !resolvedBrandName) {
         setStatusMessage("Brand name is required to update the product.");
         setIsSubmitting(false);
         return;
@@ -140,9 +184,40 @@ export default function EditProductPage() {
         return;
       }
 
+      if (!resolvedPartCode) {
+        setStatusMessage("Part code is required to generate SKU and product details.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!seriesCode) {
+        setStatusMessage("Series code (Part #1) is required to generate SKU and product details.");
+        setIsSubmitting(false);
+        return;
+      }
+
       form.set("brandName", resolvedBrandName || "");
       form.set("modelName", resolvedModelName || "");
       form.set("categoryRoot", categoryText);
+      form.set("partCode", resolvedPartCode);
+
+      const generatedSku = buildSku(
+        categoryText,
+        resolvedPartCode,
+        seriesCode,
+        iscCode || "",
+        resolvedBrandName,
+      );
+      const generatedName = buildProductName(
+        categoryText,
+        resolvedPartCode,
+        seriesCode,
+        iscCode || "",
+        resolvedBrandName,
+      );
+
+      form.set("name", generatedName);
+      form.set("sku", generatedSku);
 
       await axios(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
@@ -185,8 +260,13 @@ export default function EditProductPage() {
         <input
           type="hidden"
           name="categoryRoot"
-          value={selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim()}
+          value={
+            selectedCategory === "+ Create new"
+              ? categoryCreateValue.trim()
+              : selectedCategory.trim()
+          }
         />
+        <input type="hidden" name="partCode" value={partCode} />
         <div className="lg:col-span-2 space-y-6">
           <section className="hairline bg-card p-6 space-y-4">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">
@@ -212,7 +292,9 @@ export default function EditProductPage() {
               </button>
             </div>
 
-            <div className={`mt-4 grid ${mode === "brand" ? "sm:grid-cols-3" : "sm:grid-cols-1"} gap-3`}>
+            <div
+              className={`mt-4 grid ${mode === "brand" ? "sm:grid-cols-3" : "sm:grid-cols-1"} gap-3`}
+            >
               {mode === "brand" ? (
                 <>
                   <label className="block">
