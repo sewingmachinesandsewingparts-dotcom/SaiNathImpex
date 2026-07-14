@@ -422,3 +422,6 @@ Dedso eye-Guard for Hx-7000
 <Brand> <Category> for <Brand Code>-<Series Code>)
 
 if the category is selected then the data will be show like -->  (<Brand> for <Brand Code>-<Series Code>)
+
+(pending (SKU))
+

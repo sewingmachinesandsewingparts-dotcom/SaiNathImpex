@@ -19,3 +19,8 @@ is `src/routes/__root.tsx`.
 | `__root.tsx`             | app shell — wraps every page; preserve `<Outlet />`     |
 
 `routeTree.gen.ts` is auto-generated. Don't edit it by hand.
+
+
+MONGODB_URI=mongodb+srv://sewingmachinesandsewingparts_db_user:<db_password>@cluster0.p0lptqz.mongodb.net/?appName=Cluster0
+MONGODB_USERNAME=sewingmachinesandsewingparts_db_user
+MONGODB_PASSWORD=yjDagekVoOy1sVc4
