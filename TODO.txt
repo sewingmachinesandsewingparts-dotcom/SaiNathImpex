@@ -1,0 +1,11 @@
+using the multer for all images to upload in the folder ✅
+so read,update,delete page for the products --> not now ✅
+using the axios rather than fetch
+option for adding multiple images when product creating ✅ or uploading the images from the issue page 
+create a readme file for the project and data flow ✅
+change the whole project to full next js (frontend in next,backend in next)  wth .jsx extention  ✅
+if the schema availabe then the data should be dynamic or created by the frontend + database ✅
+create the route the needed but not created until now 
+
+
+I:\SewingMachineProect\Next-Sewing-Machine-Project-main\Next-Sewing-Machine-Project-main\.next

@@ -1,0 +1,186 @@
+import connectMongo from "@/src/lib/mongo";
+import User from "@/src/models/User";
+import {
+  hashPassword,
+  verifyPassword,
+  setAuthCookie,
+  clearAuthCookie,
+  getAuthCookie,
+} from "@/src/lib/auth";
+import { jsonResponse, badRequest, errorResponse } from "@/src/lib/api";
+
+function validateSignup(email, password, name) {
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!normalizedEmail) {
+    return "Email is required.";
+  }
+
+  if (!emailRegex.test(normalizedEmail)) {
+    return "Please enter a valid email address.";
+  }
+
+  if (!name || String(name).trim().length < 2) {
+    return "Name must be at least 2 characters long.";
+  }
+
+  if (String(password || "").length < 8) {
+    return "Password must be at least 8 characters long.";
+  }
+
+  if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include at least one uppercase letter and one number.";
+  }
+
+  return null;
+}
+
+export async function GET(request) {
+  await connectMongo();
+  try {
+    const userId = getAuthCookie(request);
+    if (!userId) return jsonResponse({ user: null });
+
+    const user = await User.findOne({ id: userId });
+    if (!user || user.status === "blocked") return jsonResponse({ user: null });
+
+    return jsonResponse({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image || "",
+        role: user.role,
+        status: user.status,
+        permissions: user.permissions || [],
+      },
+    });
+  } catch (error) {
+    return errorResponse(error.message);
+  }
+}
+
+function isGoogleAccountEmail(email) {
+  return /@(gmail\.com|googlemail\.com)$/i.test(String(email || ""));
+}
+
+export async function POST(request) {
+  await connectMongo();
+
+  try {
+    const body = await request.json();
+    const { mode, name, email, password } = body;
+
+    if (!email || !password) {
+      return badRequest("Email and password are required.");
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const isSignup = mode === "up";
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (isSignup) {
+      const validationError = validateSignup(normalizedEmail, password, name);
+      if (validationError) {
+        return badRequest(validationError);
+      }
+
+      if (existingUser) {
+        return badRequest("This email is already registered.");
+      }
+
+      const count = await User.countDocuments();
+      const userId = `USR${String(count + 1).padStart(3, "0")}`;
+      const hashedPassword = hashPassword(password);
+
+      const user = await new User({
+        id: userId,
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        image: "",
+        status: "active",
+        role: "user",
+        permissions: [],
+      }).save();
+
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image || "",
+            role: user.role,
+            status: user.status,
+            permissions: user.permissions || [],
+          },
+        }),
+        {
+          status: 201,
+          headers: {
+            "Content-Type": "application/json",
+            "Set-Cookie": setAuthCookie(user.id),
+          },
+        },
+      );
+    }
+
+    if (!existingUser) {
+      if (isGoogleAccountEmail(normalizedEmail)) {
+        return badRequest(
+          "This looks like a Google account. Please use Continue with Google to sign in.",
+        );
+      }
+      return badRequest("Invalid email or password.");
+    }
+    if (!existingUser.password) {
+      return badRequest(
+        "This account uses Google sign-in. Please use Continue with Google to sign in.",
+      );
+    }
+    if (!verifyPassword(password, existingUser.password)) {
+      return badRequest("Invalid email or password.");
+    }
+
+    if (existingUser.status === "blocked") {
+      return badRequest("This account has been blocked by an administrator.");
+    }
+
+    return new Response(
+      JSON.stringify({
+        user: {
+          id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          image: existingUser.image || "",
+          role: existingUser.role,
+          status: existingUser.status,
+          permissions: existingUser.permissions || [],
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": setAuthCookie(existingUser.id),
+        },
+      },
+    );
+  } catch (error) {
+    return errorResponse(error.message, 400);
+  }
+}
+
+export async function DELETE() {
+  return new Response(JSON.stringify({ user: null }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Set-Cookie": clearAuthCookie(),
+    },
+  });
+}
