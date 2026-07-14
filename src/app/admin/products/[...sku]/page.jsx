@@ -77,7 +77,6 @@ export default function EditProductPage() {
 
   useEffect(() => {
     if (!product) return;
-    // Edit flow uses brand/model only
     setMode("brand");
     setSelectedBrand(product.brandName || "");
     setBrandCreateValue("");
@@ -85,9 +84,11 @@ export default function EditProductPage() {
     const hasModel = selectedBrandRecord?.models?.some((model) => model.name === product.modelName);
     setSelectedModel(hasModel ? product.modelName : "+ Create new");
     setModelCreateValue(hasModel ? "" : product.modelName || "");
-    // preserve categoryRoot if present
-    setSelectedCategory(product.categoryRoot || "");
-    setCategoryCreateValue("");
+
+    const categoryRoot = product.categoryRoot?.trim() || "";
+    const isKnownCategory = categoryRoot && CATEGORY_OPTIONS.includes(categoryRoot);
+    setSelectedCategory(isKnownCategory ? categoryRoot : categoryRoot ? "+ Create new" : "");
+    setCategoryCreateValue(isKnownCategory ? "" : categoryRoot);
   }, [product, brandRecords]);
 
   const handleImageChange = (event, index) => {
