@@ -103,8 +103,35 @@ export default function Catalog() {
   };
 
   const isBrand = brands.filter((b) => b.isBrand);
-  const othersBrand = brands.find((b) => b.slug === "others");
-  const categoriesList = othersBrand ? othersBrand.models : [];
+  const [categoriesList, setCategoriesList] = useState([]);
+
+  // Load categories: prefer explicit 'others' brand models, otherwise derive from parts
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await axios("/api/brands");
+        const data = res.data;
+        const others = data.find((b) => b.slug === "others");
+        if (others && Array.isArray(others.models) && others.models.length > 0) {
+          setCategoriesList(others.models);
+          return;
+        }
+
+        // Fallback: derive categories from parts where brandName === 'Others'
+        const partsRes = await axios("/api/parts?brand=Others");
+        const partsData = partsRes.data || [];
+        const uniq = {};
+        partsData.forEach((p) => {
+          if (p.modelSlug) uniq[p.modelSlug] = p.modelName || p.modelSlug;
+        });
+        setCategoriesList(Object.keys(uniq).map((k) => ({ slug: k, name: uniq[k] })));
+      } catch (err) {
+        console.error("Error loading categories:", err);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   return (
     <PageShell>

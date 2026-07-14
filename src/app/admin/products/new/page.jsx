@@ -32,8 +32,8 @@ export default function NewProductPage() {
   const [selectedBrand, setSelectedBrand] = useState("");
   const [brandCreateValue, setBrandCreateValue] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
   const [modelCreateValue, setModelCreateValue] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryCreateValue, setCategoryCreateValue] = useState("");
   const [brandNameOverride, setBrandNameOverride] = useState("");
 
@@ -66,6 +66,8 @@ export default function NewProductPage() {
     setImageGroups((prev) => [...prev, []]);
   };
 
+  const categoryText = selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -81,27 +83,9 @@ export default function NewProductPage() {
       form.set("mode", mode);
       imageGroups.flat().forEach((file) => form.append("images", file));
       const explicitPartCode = form.get("brandNameOverride")?.toString().trim();
-      const categoryValue = selectedCategory === "+ Create new"
-        ? categoryCreateValue.trim()
-        : selectedCategory.trim();
-      const categoryText = categoryValue;
-      const resolvedBrandName = mode === "category"
-        ? "Others"
-        : selectedBrand === "+ Create new"
-        ? brandCreateValue.trim()
-        : selectedBrand.trim();
-      const resolvedModelName = mode === "category"
-        ? categoryText
-        : selectedModel === "+ Create new"
-        ? modelCreateValue.trim()
-        : selectedModel.trim();
+      const resolvedBrandName = selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim();
+      const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
       const resolvedPartCode = explicitPartCode;
-
-      if (!categoryText) {
-        setStatusMessage("Category is required to generate product details.");
-        setIsSubmitting(false);
-        return;
-      }
 
       if (!resolvedPartCode) {
         setStatusMessage("Part code is required to generate SKU and product details.");
@@ -121,31 +105,20 @@ export default function NewProductPage() {
         return;
       }
 
-      if (selectedCategory === "+ Create new" && !categoryCreateValue.trim()) {
-        setStatusMessage("Category name is required when creating a new category.");
+      if (selectedModel === "+ Create new" && !modelCreateValue.trim()) {
+        setStatusMessage("Model name is required when creating a new model.");
         setIsSubmitting(false);
         return;
       }
 
       form.set("brandName", resolvedBrandName || "");
       form.set("modelName", resolvedModelName || "");
+      form.set("categoryRoot", categoryText);
 
       const seriesCode = form.get("seriesCode")?.toString().trim();
       const iscCode = form.get("iscCode")?.toString().trim();
-      const generatedSku = buildSku(
-        categoryText,
-        resolvedPartCode,
-        seriesCode || "",
-        iscCode || "",
-        mode === "brand" ? resolvedBrandName : "",
-      );
-      const generatedName = buildProductName(
-        categoryText,
-        resolvedPartCode,
-        seriesCode || "",
-        iscCode || "",
-        mode === "brand" ? resolvedBrandName : "",
-      );
+      const generatedSku = buildSku(categoryText, resolvedPartCode, seriesCode || "", iscCode || "", mode === "brand" ? resolvedBrandName : "");
+      const generatedName = buildProductName(categoryText, resolvedPartCode, seriesCode || "", iscCode || "", mode === "brand" ? resolvedBrandName : "");
 
       if (!seriesCode) {
         setStatusMessage("Series code is required to generate SKU and part number.");
@@ -153,7 +126,6 @@ export default function NewProductPage() {
         return;
       }
 
-      form.set("categoryRoot", categoryText);
       form.set("name", generatedName);
       form.set("sku", generatedSku);
       form.set("id1", seriesCode);
@@ -180,13 +152,14 @@ export default function NewProductPage() {
   return (
     <AdminShell title="New product" subtitle="Add a part to the catalog">
       <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
+        <input type="hidden" name="categoryRoot" value={categoryText} />
         <div className="lg:col-span-2 space-y-6">
           <section className="hairline bg-card p-6">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-4">
               Step 01 · Classify
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -197,7 +170,7 @@ export default function NewProductPage() {
                   setBrandCreateValue("");
                   setModelCreateValue("");
                 }}
-                className={`hairline p-4 text-left ${
+                className={`w-full hairline p-4 text-left ${
                   mode === "brand" ? "bg-ink text-bone" : "hover:bg-secondary"
                 }`}
               >
@@ -211,7 +184,7 @@ export default function NewProductPage() {
                 type="button"
                 onClick={() => {
                   setMode("category");
-                  setSelectedBrand("Others");
+                  setSelectedBrand("");
                   setSelectedModel("");
                   setSelectedCategory("");
                   setBrandCreateValue("");
@@ -221,7 +194,7 @@ export default function NewProductPage() {
                   mode === "category" ? "bg-ink text-bone" : "hover:bg-secondary"
                 }`}
               >
-                <div className="font-display text-2xl">Universal / Others</div>
+                <div className="font-display text-2xl">Category</div>
                 <div className="font-mono text-[10px] uppercase tracking-widest opacity-70 mt-1">
                   e.g. Eye Guard · Motor
                 </div>
@@ -303,41 +276,74 @@ export default function NewProductPage() {
                       />
                     )}
                   </label>
-                </>
-              ) : null}
 
-              <label className="block">
-                <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                  Category
-                </span>
-                <select
-                  className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
-                  value={selectedCategory}
-                  onChange={(event) => {
-                    setSelectedCategory(event.target.value);
-                    if (event.target.value !== "+ Create new") {
-                      setCategoryCreateValue("");
-                    }
-                  }}
-                >
-                  <option value="">Select category</option>
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                  <option value="+ Create new">+ Create new</option>
-                </select>
-                {selectedCategory === "+ Create new" && (
-                  <input
-                    type="text"
-                    value={categoryCreateValue}
-                    onChange={(event) => setCategoryCreateValue(event.target.value)}
-                    placeholder="Create new category"
-                    className="border-2 bg-background outline-none focus:border-copper mt-2 py-2 pl-3 w-full"
-                  />
-                )}
-              </label>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                      Category (optional)
+                    </span>
+                    <select
+                      className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                      value={selectedCategory}
+                      onChange={(event) => {
+                        setSelectedCategory(event.target.value);
+                        if (event.target.value !== "+ Create new") {
+                          setCategoryCreateValue("");
+                        }
+                      }}
+                    >
+                      <option value="">Select category</option>
+                      {CATEGORY_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                      <option value="+ Create new">+ Create new</option>
+                    </select>
+                    {selectedCategory === "+ Create new" && (
+                      <input
+                        type="text"
+                        value={categoryCreateValue}
+                        onChange={(event) => setCategoryCreateValue(event.target.value)}
+                        placeholder="Create new category"
+                        className="border-2 bg-background outline-none focus:border-copper mt-2 py-2 pl-3 w-full"
+                      />
+                    )}
+                  </label>
+                </>
+              ) : (
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                    Category (optional)
+                  </span>
+                  <select
+                    className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                    value={selectedCategory}
+                    onChange={(event) => {
+                      setSelectedCategory(event.target.value);
+                      if (event.target.value !== "+ Create new") {
+                        setCategoryCreateValue("");
+                      }
+                    }}
+                  >
+                    <option value="">Select category</option>
+                    {CATEGORY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                    <option value="+ Create new">+ Create new</option>
+                  </select>
+                  {selectedCategory === "+ Create new" && (
+                    <input
+                      type="text"
+                      value={categoryCreateValue}
+                      onChange={(event) => setCategoryCreateValue(event.target.value)}
+                      placeholder="Create new category"
+                      className="border-2 bg-background outline-none focus:border-copper mt-2 py-2 pl-3 w-full"
+                    />
+                  )}
+                </label>
+              )}
             </div>
           </section>
 

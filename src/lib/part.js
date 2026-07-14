@@ -49,18 +49,21 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
     throw new Error("Brand name is required when creating a branded product.");
   }
 
-  const resolvedBrandName = normalizedBrandName || (isCategoryMode ? "Others" : "");
+  const resolvedBrandName = normalizedBrandName || "";
   const resolvedModelName = normalizedModelName || "";
-  const brand =
-    (await Brand.findOne({
-      name: new RegExp(`^${resolvedBrandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
-    })) ||
-    (await Brand.create({
-      slug: ensureSlug(resolvedBrandName || "others"),
-      name: resolvedBrandName || "Others",
-      isBrand: !isCategoryMode,
-      models: [],
-    }));
+  let brand = null;
+  if (resolvedBrandName) {
+    brand =
+      (await Brand.findOne({
+        name: new RegExp(`^${resolvedBrandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+      })) ||
+      (await Brand.create({
+        slug: ensureSlug(resolvedBrandName),
+        name: resolvedBrandName,
+        isBrand: !isCategoryMode,
+        models: [],
+      }));
+  }
 
   if (resolvedModelName) {
     const hasModel = brand.models?.some(
@@ -78,8 +81,8 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
   }
 
   return {
-    brandName: brand.name,
-    brandSlug: brand.slug,
+    brandName: brand ? brand.name : "",
+    brandSlug: brand ? brand.slug : "",
     modelName: resolvedModelName,
     modelSlug: ensureSlug(resolvedModelName),
   };
@@ -117,7 +120,7 @@ export function buildPartFilter({ q, brand, category, stitchType, minPrice, maxP
   }
 
   if (category) {
-    filter.modelSlug = { $in: parseList(category) };
+    filter.categoryRootSlug = { $in: parseList(category) };
   }
 
   if (stitchType) {
@@ -172,6 +175,7 @@ export function parsePartFormData(formData) {
     hasMotor: parseBoolean(get("hasMotor")),
     brandName: get("brandName"),
     modelName: get("modelName"),
+    categoryRoot: get("categoryRoot"),
     mode: get("mode"),
   };
 }
@@ -206,6 +210,8 @@ export function createPartPayload(values, uploadedUrls, brandData) {
     brandSlug: brandData.brandSlug || ensureSlug(brandData.brandName),
     modelName: brandData.modelName || "",
     modelSlug: brandData.modelSlug || ensureSlug(brandData.modelName),
+    categoryRoot: values.categoryRoot || "",
+    categoryRootSlug: values.categoryRoot ? ensureSlug(values.categoryRoot) : "",
     images: uploadedUrls,
     rating: 0,
     reviews: 0,
@@ -247,6 +253,11 @@ export function buildPartUpdateData(existingPart, formData, uploadedUrls, delete
     brandSlug: brandData.brandSlug || existingPart.brandSlug,
     modelName: brandData.modelName || existingPart.modelName,
     modelSlug: brandData.modelSlug || existingPart.modelSlug,
+    categoryRoot: values.categoryRoot || existingPart.categoryRoot,
+    categoryRootSlug:
+      values.categoryRoot && values.categoryRoot.trim()
+        ? ensureSlug(values.categoryRoot)
+        : existingPart.categoryRootSlug,
     images: [...imageList, ...uploadedUrls],
   };
 }

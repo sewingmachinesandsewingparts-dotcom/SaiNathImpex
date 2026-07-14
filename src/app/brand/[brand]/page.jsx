@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
@@ -9,12 +10,17 @@ import axios from 'axios';
 export default function BrandPage({ params }) {
   const resolvedParams = use(params);
   const brandSlug = resolvedParams.brand;
+  const router = useRouter();
 
   const [brand, setBrand] = useState(null);
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (brandSlug === "others") {
+      router.replace("/categories");
+      return;
+    }
     setLoading(true);
     // Fetch brands to find current one
     axios("/api/brands")

@@ -40,6 +40,7 @@ export default function EditProductPage() {
   const [modelCreateValue, setModelCreateValue] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryCreateValue, setCategoryCreateValue] = useState("");
+  
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -76,25 +77,17 @@ export default function EditProductPage() {
 
   useEffect(() => {
     if (!product) return;
-    const isCategory = product.brandName === "Others";
-    setMode(isCategory ? "category" : "brand");
-    setSelectedBrand(isCategory ? "Others" : product.brandName || "");
+    // Edit flow uses brand/model only
+    setMode("brand");
+    setSelectedBrand(product.brandName || "");
     setBrandCreateValue("");
-
-    if (isCategory) {
-      const matchedCategory = CATEGORY_OPTIONS.includes(product.modelName) ? product.modelName : "+ Create new";
-      setSelectedCategory(matchedCategory);
-      setCategoryCreateValue(matchedCategory === "+ Create new" ? product.modelName || "" : "");
-      setSelectedModel("");
-      setModelCreateValue("");
-    } else {
-      setSelectedCategory("");
-      const selectedBrandRecord = brandRecords.find((brand) => brand.name === product.brandName);
-      const hasModel = selectedBrandRecord?.models?.some((model) => model.name === product.modelName);
-      setSelectedModel(hasModel ? product.modelName : "+ Create new");
-      setModelCreateValue(hasModel ? "" : product.modelName || "");
-      setCategoryCreateValue("");
-    }
+    const selectedBrandRecord = brandRecords.find((brand) => brand.name === product.brandName);
+    const hasModel = selectedBrandRecord?.models?.some((model) => model.name === product.modelName);
+    setSelectedModel(hasModel ? product.modelName : "+ Create new");
+    setModelCreateValue(hasModel ? "" : product.modelName || "");
+    // preserve categoryRoot if present
+    setSelectedCategory(product.categoryRoot || "");
+    setCategoryCreateValue("");
   }, [product, brandRecords]);
 
   const handleImageChange = (event, index) => {
@@ -130,19 +123,11 @@ export default function EditProductPage() {
       }
 
       const explicitBrandName = form.get("brandName")?.toString().trim();
-      const categoryValue = selectedCategory === "+ Create new"
-        ? categoryCreateValue.trim()
-        : selectedCategory.trim();
-      const resolvedBrandName = mode === "category"
-        ? "Others"
-        : explicitBrandName || (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
-      const resolvedModelName = mode === "category"
-        ? categoryValue
-        : selectedModel === "+ Create new"
-        ? modelCreateValue.trim()
-        : selectedModel.trim();
+      const resolvedBrandName = explicitBrandName || (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
+      const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
+      const categoryText = selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
 
-      if (mode === "brand" && !resolvedBrandName) {
+      if (!resolvedBrandName) {
         setStatusMessage("Brand name is required to update the product.");
         setIsSubmitting(false);
         return;
@@ -154,15 +139,9 @@ export default function EditProductPage() {
         return;
       }
 
-      if (mode === "category" && !categoryValue) {
-        setStatusMessage("Category is required to update the product.");
-        setIsSubmitting(false);
-        return;
-      }
-
       form.set("brandName", resolvedBrandName || "");
       form.set("modelName", resolvedModelName || "");
-      form.set("categoryRoot", categoryValue || "");
+      form.set("categoryRoot", categoryText);
 
       await axios(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
@@ -202,56 +181,32 @@ export default function EditProductPage() {
   return (
     <AdminShell title="Edit product" subtitle={`Update ${product.name}`}>
       <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
+        <input
+          type="hidden"
+          name="categoryRoot"
+          value={selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim()}
+        />
         <div className="lg:col-span-2 space-y-6">
           <section className="hairline bg-card p-6 space-y-4">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">
               Step 01 · Classify
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setMode("brand");
-                  setSelectedBrand(product.brandName === "Others" ? "" : product.brandName || "");
-                  setSelectedModel(product.brandName === "Others" ? "" : product.modelName || "");
-                  setSelectedCategory("");
+                  setSelectedBrand(product.brandName || "");
+                  setSelectedModel(product.modelName || "");
                   setBrandCreateValue("");
                   setModelCreateValue("");
-                  setCategoryCreateValue("");
                 }}
-                className={`hairline p-4 text-left ${
-                  mode === "brand" ? "bg-ink text-bone" : "hover:bg-secondary"
-                }`}
+                className={`w-full hairline p-4 text-left ${mode === "brand" ? "bg-ink text-bone" : "hover:bg-secondary"}`}
               >
                 <div className="font-display text-2xl">Brand</div>
                 <div className="font-mono text-[10px] uppercase tracking-widest opacity-70 mt-1">
                   e.g. JUKI · DDL-8700
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("category");
-                  setSelectedBrand("Others");
-                  setSelectedModel("");
-                  setSelectedCategory(product.brandName === "Others" ? (CATEGORY_OPTIONS.includes(product.modelName) ? product.modelName : "+ Create new") : "");
-                  setBrandCreateValue("");
-                  setModelCreateValue("");
-                  setCategoryCreateValue(
-                    product.brandName === "Others" && !CATEGORY_OPTIONS.includes(product.modelName)
-                      ? product.modelName || ""
-                      : "",
-                  );
-                }}
-                className={`hairline p-4 text-left ${
-                  mode === "category" ? "bg-ink text-bone" : "hover:bg-secondary"
-                }`}
-              >
-                <div className="font-display text-2xl">Universal / Others</div>
-                <div className="font-mono text-[10px] uppercase tracking-widest opacity-70 mt-1">
-                  e.g. Eye Guard · Motor
                 </div>
               </button>
             </div>
@@ -331,41 +286,39 @@ export default function EditProductPage() {
                       />
                     )}
                   </label>
+
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                      Category (optional)
+                    </span>
+                    <select
+                      className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                      value={selectedCategory}
+                      onChange={(event) => {
+                        setSelectedCategory(event.target.value);
+                        if (event.target.value !== "+ Create new") setCategoryCreateValue("");
+                      }}
+                    >
+                      <option value="">Select category</option>
+                      {CATEGORY_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                      <option value="+ Create new">+ Create new</option>
+                    </select>
+                    {selectedCategory === "+ Create new" && (
+                      <input
+                        type="text"
+                        value={categoryCreateValue}
+                        onChange={(event) => setCategoryCreateValue(event.target.value)}
+                        placeholder="Create new category"
+                        className="border-2 bg-background outline-none focus:border-copper mt-2 py-2 pl-3 w-full"
+                      />
+                    )}
+                  </label>
                 </>
               ) : null}
-
-              <label className="block">
-                <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                  Category
-                </span>
-                <select
-                  className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
-                  value={selectedCategory}
-                  onChange={(event) => {
-                    setSelectedCategory(event.target.value);
-                    if (event.target.value !== "+ Create new") {
-                      setCategoryCreateValue("");
-                    }
-                  }}
-                >
-                  <option value="">Select category</option>
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                  <option value="+ Create new">+ Create new</option>
-                </select>
-                {selectedCategory === "+ Create new" && (
-                  <input
-                    type="text"
-                    value={categoryCreateValue}
-                    onChange={(event) => setCategoryCreateValue(event.target.value)}
-                    placeholder="Create new category"
-                    className="border-2 bg-background outline-none focus:border-copper mt-2 py-2 pl-3 w-full"
-                  />
-                )}
-              </label>
             </div>
           </section>
 

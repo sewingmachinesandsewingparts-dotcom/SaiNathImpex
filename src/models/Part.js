@@ -32,6 +32,8 @@ const partSchema = new mongoose.Schema(
     brandName: { type: String },
     modelSlug: { type: String },
     modelName: { type: String },
+    categoryRoot: { type: String },
+    categoryRootSlug: { type: String },
     isBrand: { type: Boolean },
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },

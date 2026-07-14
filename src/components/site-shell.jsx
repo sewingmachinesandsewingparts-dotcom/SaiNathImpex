@@ -203,7 +203,7 @@ export function SiteHeader() {
           ))}
           <span className="text-border">|</span>
           <Link
-            href="/brand/others"
+            href="/categories"
             className="font-mono text-[11px] uppercase tracking-[0.2em] px-3 py-1.5 hover:text-copper whitespace-nowrap"
           >
             Categories
@@ -258,7 +258,7 @@ export function SiteFooter() {
             links: [
               ["All parts", "/catalog"],
               ["By brand", "/brand/juki"],
-              ["By category", "/brand/others"],
+              ["By category", "/categories"],
               ["Sales", "/sales"],
             ],
           },
