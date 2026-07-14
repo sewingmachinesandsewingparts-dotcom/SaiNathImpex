@@ -48,7 +48,9 @@ export function buildSku(category, modelCode, seriesCode, iscCode, brandName = "
       .toLowerCase() !== "others" && String(brandName || "").trim() !== "";
 
   if (hasBrandName) {
-    return `${getBrandAbbreviation(brandName)}-${categoryAbbr}`;
+    // Format when brand is present: BRANDABBR-CATABBR-MODEL+SERIES(-ISC)
+    const modelSeries = `${modelPart}${seriesPart}`;
+    return `${getBrandAbbreviation(brandName)}-${categoryAbbr}-${modelSeries}${iscPart ? `-${iscPart}` : ""}`;
   }
 
   if (iscPart) {

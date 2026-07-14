@@ -19,7 +19,7 @@ test("buildSku and buildProductName match README rules without ISC", () => {
 });
 
 test("buildSku and buildProductName match README rules for branded products", () => {
-  assert.equal(buildSku("Eye Guard", "HX", "35000", "747D", "Pegasus"), "PEG-EG");
+  assert.equal(buildSku("Eye Guard", "HX", "35000", "747D", "Pegasus"), "PEG-EG-HX35000-747D");
   assert.equal(
     buildProductName("Eye Guard", "HX", "35000", "747D", "Pegasus"),
     "Pegasus Eye Guard Hx-35000 747D",

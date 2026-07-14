@@ -425,3 +425,8 @@ if the category is selected then the data will be show like -->  (<Brand> for <B
 
 (pending (SKU))
 
+1. fix the SKU --> 
+--><Brand> <Category>  <Brand Code>-<Series Code>  <ISE Code >
+from this product name --> Hengxu Eye Guard Hx-35000 R53
+to SKU of this -->HEN-EG-HX35000-R53
+--><Brand (create a custom brand name and select from receny created)>-<Category>-<Brand Code><Series Code>-<ISE Code >
