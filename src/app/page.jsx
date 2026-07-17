@@ -130,12 +130,12 @@ export default function Home() {
                 className="h-12 px-6 inline-flex items-center gap-2 bg-ink text-bone hover:bg-copper transition-colors font-mono text-xs uppercase tracking-[0.2em]"
               >
                 Shop the catalog <ArrowRight className="h-4 w-4" />
+              </Link>
               <Link
                 href="/categories"
                 className="h-12 px-6 inline-flex items-center gap-2 border border-ink hover:bg-ink hover:text-bone transition-colors font-mono text-xs uppercase tracking-[0.2em]"
               >
                 Browse by category
-              </Link>
               </Link>
             </div>
           </div>
