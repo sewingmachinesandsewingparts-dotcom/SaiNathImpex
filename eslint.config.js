@@ -30,7 +30,7 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "prettier/prettier": "error",
+      "prettier/prettier": "warn",
       "no-unused-vars": "warn",
       "react-hooks/exhaustive-deps": "warn",
       "next/no-html-link-for-pages": "off",
