@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { AdminPageFrame } from "@/src/components/route-shells";
 
 export default function AdminDashboardPage() {
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    axios
+    api
       .get("/api/admin/dashboard")
       .then((res) => setSummary(res.data))
-      .catch(() => setSummary(null));
   }, []);
 
   return (

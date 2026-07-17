@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { PageShell } from "@/src/components/site-shell";
 import { formatINR } from "@/src/lib/format";
 import { Package, Search } from "lucide-react";
-import axios from 'axios';
+import api from '@/src/utils/api';
 
 const statusStyles = {
   placed: "bg-secondary text-foreground",
@@ -22,7 +22,7 @@ export default function Orders() {
   const fetchOrders = (email = "") => {
     setLoading(true);
     const query = email ? `?email=${encodeURIComponent(email)}` : "";
-    axios(`/api/orders${query}`)
+    api(`/api/orders${query}`)
       .then((res) => res.data)
       .then((data) => {
         setOrders(data);

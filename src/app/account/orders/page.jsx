@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { AccountPageFrame } from "@/src/components/route-shells";
 
 export default function AccountOrdersPage() {
@@ -9,7 +9,7 @@ export default function AccountOrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
+    api
       .get("/api/orders")
       .then((res) => setOrders(Array.isArray(res.data) ? res.data : []))
       .catch(() => setOrders([]))

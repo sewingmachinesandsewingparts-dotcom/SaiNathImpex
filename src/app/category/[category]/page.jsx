@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
-import axios from "axios";
+import api from "@/src/utils/api";
 
 export default function CategoryPage({ params }) {
   const categorySlug = params.category;
@@ -14,7 +14,7 @@ export default function CategoryPage({ params }) {
 
   useEffect(() => {
     setLoading(true);
-    axios(`/api/parts?category=${encodeURIComponent(categorySlug)}`)
+    api(`/api/parts?category=${encodeURIComponent(categorySlug)}`)
       .then((res) => res.data)
       .then((data) => {
         setParts(data);

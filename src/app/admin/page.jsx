@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { AdminShell } from "@/src/components/admin-shell";
 import { formatINR } from "@/src/lib/format";
 import { TrendingUp, ShoppingBag, Users, AlertTriangle, ArrowUpRight } from "lucide-react";
-import axios from 'axios';
+import api from "@/src/utils/api";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -21,7 +21,7 @@ export default function AdminDash() {
   const [dashboard, setDashboard] = useState(null);
 
   useEffect(() => {
-    axios("/api/admin/dashboard")
+    api("/api/admin/dashboard")
       .then((r) => r.data)
       .then(setDashboard)
       .catch(console.error);

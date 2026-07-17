@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { Package, Search, Clock3, MapPin, Truck, CheckCircle, XCircle } from "lucide-react";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 const statusSteps = [
   { status: "placed", label: "Order placed" },
@@ -24,7 +24,7 @@ export default function TrackOrderPage() {
     setLoading(true);
     setMessage("");
     try {
-      const { data } = await axios(`/api/orders${query}`);
+      const { data } = await api(`/api/orders${query}`);
       if (Array.isArray(data) && data.length > 0) {
         setOrder(data[0]);
         setMessage("");

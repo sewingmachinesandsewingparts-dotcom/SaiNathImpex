@@ -17,7 +17,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/src/utils/api";
 
 // Module-level cache — shared across all components on the same page.
 // Resets on full page reload (which is correct behaviour).
@@ -45,7 +45,7 @@ export function useAuth() {
 
     // Only start one fetch even if multiple components call useAuth() at the same time
     if (!fetchPromise) {
-      fetchPromise = axios.get("/api/auth")
+      fetchPromise = api.get("/api/auth")
         .then((res) => res.data)
         .then((data) => {
           cachedUser = data.user || null; // cache the result

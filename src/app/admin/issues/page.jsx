@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AdminShell } from "@/src/components/admin-shell";
 import { ArrowUpRight, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 const statusLabels = {
   open: "Open",
@@ -30,7 +30,7 @@ export default function AdminIssues() {
   const [editingAssignment, setEditingAssignment] = useState({});
 
   useEffect(() => {
-    axios("/api/issues")
+    api("/api/issues")
       .then((r) => r.data)
       .then((data) => {
         setIssues(data);
@@ -52,7 +52,7 @@ export default function AdminIssues() {
   const updateStatus = async (id, status) => {
     setUpdatingId(id);
     try {
-      const res = await axios("/api/issues", {
+      const res = await api("/api/issues", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify({ id, status }),
@@ -104,7 +104,7 @@ export default function AdminIssues() {
 
     setUpdatingId(issue.id);
     try {
-      const res = await axios("/api/issues", {
+      const res = await api("/api/issues", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify(payload),

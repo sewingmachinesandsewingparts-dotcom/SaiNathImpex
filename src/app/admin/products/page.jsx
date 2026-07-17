@@ -6,7 +6,7 @@ import { AdminShell } from "@/src/components/admin-shell";
 import { formatINR } from "@/src/lib/format";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 export default function AdminProducts() {
   const [parts, setParts] = useState([]);
@@ -27,7 +27,7 @@ export default function AdminProducts() {
       if (category) params.set("category", category);
       if (nameOnly) params.set("nameOnly", "true");
 
-      const response = await axios(`/api/parts?${params.toString()}`);
+      const response = await api(`/api/parts?${params.toString()}`);
       const data = response.data;
       setParts(data);
       if (!q && !brand && !category) {
@@ -86,7 +86,7 @@ export default function AdminProducts() {
     }
 
     try {
-      await axios(`/api/parts/${encodeURIComponent(sku)}`, {
+      await api(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "DELETE",
       });
 

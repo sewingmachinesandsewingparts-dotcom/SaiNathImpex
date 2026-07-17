@@ -14,7 +14,7 @@ import {
   Globe,
   HelpCircle,
 } from "lucide-react";
-import axios from "axios";
+import api from "@/src/utils/api";
 
 const presets = [
   { id: "machine", label: "Machine", Icon: Wrench, disabled: true },
@@ -69,7 +69,7 @@ export default function Support() {
     console.log('[support] submitting files:', imageGroups.flat().map(f => f && f.name));
 
     try {
-      await axios.post("/api/issues", formData);
+      await api.post("/api/issues", formData);
 
       const userMsg = {
         from: "me",

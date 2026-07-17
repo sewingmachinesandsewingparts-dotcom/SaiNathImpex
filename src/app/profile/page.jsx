@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "@/src/utils/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
@@ -17,7 +17,7 @@ export default function Profile() {
   const router = useRouter();
 
   useEffect(() => {
-    axios
+    api
       .get("/api/auth")
       .then((res) => {
         setUser(res.data.user);
@@ -40,7 +40,7 @@ export default function Profile() {
 
   const handleSignOut = async () => {
     try {
-      await axios.delete("/api/auth");
+      await api.delete("/api/auth");
     } catch (err) {
       console.error("Sign out failed:", err);
     }

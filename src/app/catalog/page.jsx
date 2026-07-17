@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import { SlidersHorizontal } from "lucide-react";
-import axios from 'axios';
+import api from '@/src/utils/api';
 
 export default function Catalog() {
   const [parts, setParts] = useState([]);
@@ -22,7 +22,7 @@ export default function Catalog() {
 
   // Load brands lists
   useEffect(() => {
-    axios("/api/brands")
+    api("/api/brands")
       .then((res) => res.data)
       .then((data) => setBrands(data))
       .catch((err) => console.error("Error loading catalog brands:", err));
@@ -63,7 +63,7 @@ export default function Catalog() {
     if (sort === "Best rated") sortVal = "rating";
     queryParams.set("sort", sortVal);
 
-    axios(`/api/parts?${queryParams.toString()}`)
+    api(`/api/parts?${queryParams.toString()}`)
       .then((res) => res.data)
       .then((data) => {
         setParts(data);
@@ -109,7 +109,7 @@ export default function Catalog() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await axios("/api/brands");
+        const res = await api("/api/brands");
         const data = res.data;
         const others = data.find((b) => b.slug === "others");
         if (others && Array.isArray(others.models) && others.models.length > 0) {
@@ -118,7 +118,7 @@ export default function Catalog() {
         }
 
         // Fallback: derive categories from parts where brandName === 'Others'
-        const partsRes = await axios("/api/parts?brand=Others");
+        const partsRes = await api("/api/parts?brand=Others");
         const partsData = partsRes.data || [];
         const uniq = {};
         partsData.forEach((p) => {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
-import axios from "axios";
+import api from "@/src/utils/api";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
@@ -11,7 +11,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios("/api/brands");
+        const res = await api("/api/brands");
         const data = res.data || [];
         const others = data.find((b) => b.slug === "others");
         if (others && Array.isArray(others.models) && others.models.length > 0) {
@@ -20,7 +20,7 @@ export default function CategoriesPage() {
         }
 
         // Fallback: derive from parts
-        const partsRes = await axios("/api/parts?brand=Others");
+        const partsRes = await api("/api/parts?brand=Others");
         const parts = partsRes.data || [];
         const uniq = {};
         parts.forEach((p) => {

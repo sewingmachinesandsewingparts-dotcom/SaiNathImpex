@@ -4,7 +4,7 @@ import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
-import axios from 'axios';
+import api from '@/src/utils/api';
 
 export default function ModelPage({ params }) {
   const resolvedParams = use(params);
@@ -22,8 +22,8 @@ export default function ModelPage({ params }) {
 
     // Fetch both the brands info and compatible parts in parallel
     Promise.all([
-      axios("/api/brands").then((res) => res.data),
-      axios(`/api/parts?brand=${brandSlug}&model=${modelSlug}`).then((res) => res.data),
+      api("/api/brands").then((res) => res.data),
+      api(`/api/parts?brand=${brandSlug}&model=${modelSlug}`).then((res) => res.data),
     ])
       .then(([brands, partsData]) => {
         // Resolve brand and specific model slugs

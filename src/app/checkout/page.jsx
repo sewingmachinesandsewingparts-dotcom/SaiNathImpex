@@ -6,7 +6,7 @@ import { PageShell } from "@/src/components/site-shell";
 import { useCart } from "@/src/lib/cart-context";
 import { formatINR } from "@/src/lib/format";
 import { Lock, Truck, CreditCard, CheckCircle2, ShoppingBag, ArrowRight } from "lucide-react";
-import axios from 'axios';
+import api from '@/src/utils/api';
 import { toast } from 'sonner';
 
 const BANK_OPTIONS = [
@@ -78,7 +78,7 @@ export default function Checkout() {
       setTaxLoading(true);
       try {
         const items = cart.map((i) => ({ sku: i.sku, qty: i.qty, price: i.part.price, hasMotor: i.part.hasMotor }));
-        const res = await axios('/api/tax-and-shipping', {
+        const res = await api('/api/tax-and-shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           data: JSON.stringify({ state: formData.state, shippingMethod, items, subtotal }),
@@ -98,7 +98,7 @@ export default function Checkout() {
   const verifyGstin = async () => {
     if (!formData.gstin) return toast.error('Enter GSTIN to verify');
     try {
-      const res = await axios('/api/gst/verify', {
+      const res = await api('/api/gst/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: JSON.stringify({ gstin: formData.gstin.trim() }),
@@ -182,7 +182,7 @@ export default function Checkout() {
     };
 
     try {
-      const { data } = await axios("/api/orders", {
+      const { data } = await api("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify(orderPayload),

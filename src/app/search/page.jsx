@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import { Search } from "lucide-react";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -22,7 +22,7 @@ function SearchResultsContent() {
     if (q) params.set("q", q);
     if (nameOnly) params.set("nameOnly", "true");
 
-    axios(`/api/parts?${params.toString()}`)
+    api(`/api/parts?${params.toString()}`)
       .then((res) => res.data)
       .then((data) => {
         setResults(data);

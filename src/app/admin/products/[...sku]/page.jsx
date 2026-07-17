@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Upload, Save, X } from "lucide-react";
 import { AdminShell } from "@/src/components/admin-shell";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { buildProductName, buildSku } from "@/src/lib/sku";
 
 const CATEGORY_OPTIONS = ["Eye Guard", "Puller", "Folder", "Needle Plate", "Presser Foot", "Motor"];
@@ -80,7 +80,7 @@ export default function EditProductPage() {
   useEffect(() => {
     const loadProduct = async () => {
       try {
-        const response = await axios(`/api/parts/${encodeURIComponent(sku)}`);
+        const response = await api(`/api/parts/${encodeURIComponent(sku)}`);
         const data = response.data;
         setProduct(data);
         setExistingImages(data.images || []);
@@ -97,7 +97,7 @@ export default function EditProductPage() {
   useEffect(() => {
     const loadBrands = async () => {
       try {
-        const response = await axios("/api/brands");
+        const response = await api("/api/brands");
         const data = response.data;
         if (Array.isArray(data)) {
           setBrandRecords(data);
@@ -111,7 +111,7 @@ export default function EditProductPage() {
 
     const loadParts = async () => {
       try {
-        const res = await axios('/api/parts');
+        const res = await api('/api/parts');
         const data = res.data || [];
         setPartsIndex(data);
         const map = {};
@@ -290,7 +290,7 @@ export default function EditProductPage() {
       const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
       form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
 
-      await axios(`/api/parts/${encodeURIComponent(sku)}`, {
+      await api(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
         data: form,
       });

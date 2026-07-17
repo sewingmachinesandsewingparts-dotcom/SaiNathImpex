@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Save } from "lucide-react";
 import { AdminShell } from "@/src/components/admin-shell";
-import axios from 'axios';
+import api from "@/src/utils/api";
 import { buildProductName, buildSku } from "@/src/lib/sku";
 
 const BRANDS = [
@@ -50,7 +50,7 @@ export default function NewProductPage() {
   useEffect(() => {
     const loadBrands = async () => {
       try {
-        const response = await axios("/api/brands");
+        const response = await api("/api/brands");
         const data = response.data;
         if (Array.isArray(data) && data.length > 0) {
           setBrandRecords(data);
@@ -63,7 +63,7 @@ export default function NewProductPage() {
     loadBrands();
     const loadParts = async () => {
       try {
-        const res = await axios('/api/parts');
+        const res = await api('/api/parts');
         const data = res.data || [];
         setPartsIndex(data);
         const map = {};
@@ -204,7 +204,7 @@ export default function NewProductPage() {
       const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
       form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
 
-      const response = await axios.post("/api/parts", form);
+      const response = await api.post("/api/parts", form);
 
       const data = response.data;
       if (response.status < 200 || response.status >= 300) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/src/utils/api";
 import Link from "next/link";
 import { AdminShell } from "@/src/components/admin-shell";
 
@@ -19,7 +19,7 @@ export default function AdminUsers() {
 
     const fetchUsers = async () => {
       try {
-        const auth = await axios.get("/api/auth");
+        const auth = await api.get("/api/auth");
         const user = auth.data?.user;
 
         if (!user) {
@@ -30,7 +30,7 @@ export default function AdminUsers() {
           throw new Error("Only admin or superadmin accounts can access this page.");
         }
 
-        const res = await axios.get("/api/admin/users");
+        const res = await api.get("/api/admin/users");
         if (isMounted) {
           setUsers(res.data || []);
         }

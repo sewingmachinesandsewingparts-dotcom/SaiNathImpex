@@ -6,7 +6,7 @@ import { Search, ShoppingCart, Heart, User, MessageCircle, Menu } from "lucide-r
 import { useState, useEffect } from "react";
 import { useCart } from "@/src/lib/cart-context";
 import { useAuth } from "@/src/lib/use-auth";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { toast } from "sonner";
 
 // Fallback brands for immediate render before API call completes
@@ -53,7 +53,7 @@ export function SiteHeader() {
 
     commonRoutes.forEach((route) => router.prefetch(route));
 
-    axios("/api/brands")
+    api("/api/brands")
       .then((res) => res.data)
       .then((data) => {
         const filtered = data.filter((b) => b.isBrand);
@@ -67,7 +67,7 @@ export function SiteHeader() {
 
   // Handle blocking notification once globally per session via axios interceptor
   useEffect(() => {
-    const id = axios.interceptors.response.use(
+    const id = api.interceptors.response.use(
       (res) => res,
       (error) => {
         const msg = error?.response?.data?.message || error?.message || "Request failed";
@@ -81,7 +81,7 @@ export function SiteHeader() {
     );
 
     return () => {
-      axios.interceptors.response.eject(id);
+      api.interceptors.response.eject(id);
     };
   }, []);
 

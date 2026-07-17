@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { AdminShell } from "@/src/components/admin-shell";
 import { Shield, User, CheckCircle, XCircle, Settings, Activity, ClipboardList } from "lucide-react";
 
@@ -29,7 +29,7 @@ export default function AdminUserDetail({ params }) {
   useEffect(() => {
     if (!userId) return;
 
-    axios
+    api
       .get(`/api/admin/users/${encodeURIComponent(userId)}`)
       .then((res) => setUserData(res.data))
       .catch((err) => {
@@ -46,9 +46,9 @@ export default function AdminUserDetail({ params }) {
   const updateUser = async (payload) => {
     try {
       setStatusMessage("Saving...");
-      await axios.post("/api/admin/users", payload);
+      await api.post("/api/admin/users", payload);
       setStatusMessage("Saved successfully.");
-      await axios
+      await api
         .get(`/api/admin/users/${encodeURIComponent(userId)}`)
         .then((res) => setUserData(res.data))
         .catch(() => {});

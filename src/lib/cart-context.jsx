@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 const CartContext = createContext(null);
 
@@ -39,7 +39,7 @@ export function CartProvider({ children }) {
     setLoading(true);
     
     // Fetch only the specific SKUs we need
-    axios(`/api/parts?skus=${neededSkus.join(",")}`)
+    api(`/api/parts?skus=${neededSkus.join(",")}`)
       .then((res) => {
         setParts((prev) => {
           // Merge newly fetched parts with already cached ones

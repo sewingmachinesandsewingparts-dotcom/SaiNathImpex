@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { AdminShell } from "@/src/components/admin-shell";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 const scopeOptions = [
   { value: "all", label: "All products" },
@@ -31,8 +31,8 @@ export default function AdminSales() {
 
   useEffect(() => {
     Promise.all([
-      axios("/api/sales").then((r) => r.data),
-      axios("/api/brands").then((r) => r.data),
+      api("/api/sales").then((r) => r.data),
+      api("/api/brands").then((r) => r.data),
     ])
       .then(([salesData, brandData]) => {
         setSales(salesData);
@@ -74,7 +74,7 @@ export default function AdminSales() {
     if (editSaleId) payload.id = editSaleId;
 
     try {
-      const res = await axios("/api/sales", {
+      const res = await api("/api/sales", {
         method,
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify(payload),
@@ -129,7 +129,7 @@ export default function AdminSales() {
     // TODO: replace confirm with a custom modal if you want a non-blocking confirmation flow.
     if (!confirm("Delete this sale?")) return;
     try {
-      await axios("/api/sales", {
+      await api("/api/sales", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify({ id }),

@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "@/src/utils/api";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
@@ -64,7 +64,7 @@ function AuthInner() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         "/api/auth",
         { mode, name, email, password },
         { headers: { "Content-Type": "application/json" } },

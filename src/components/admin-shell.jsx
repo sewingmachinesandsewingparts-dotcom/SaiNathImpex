@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/src/utils/api";
 import {
   LayoutDashboard,
   Package,
@@ -37,7 +37,7 @@ export function AdminShell({ children, title, subtitle }) {
 
   useEffect(() => {
     let active = true;
-    axios
+    api
       .get("/api/auth")
       .then((res) => {
         if (!active) return;
@@ -120,7 +120,7 @@ export function AdminShell({ children, title, subtitle }) {
             type="button"
             onClick={async () => {
               try {
-                await axios.delete("/api/auth");
+                await api.delete("/api/auth");
               } catch (error) {
                 console.error("Admin logout failed:", error);
               }

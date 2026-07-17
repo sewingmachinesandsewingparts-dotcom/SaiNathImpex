@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/src/components/admin-shell";
 import { toast } from "sonner";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 export default function AdminSettings() {
   const [brands, setBrands] = useState([]);
@@ -14,7 +14,7 @@ export default function AdminSettings() {
   useEffect(() => {
     const loadBrands = async () => {
       try {
-        const response = await axios("/api/brands");
+        const response = await api("/api/brands");
         const data = response.data;
         setBrands(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -37,7 +37,7 @@ export default function AdminSettings() {
     try {
       setDeletingSlug(slug);
       setBrandError("");
-      await axios(`/api/brands?slug=${encodeURIComponent(slug)}`, {
+      await api(`/api/brands?slug=${encodeURIComponent(slug)}`, {
         method: "DELETE",
       });
 
@@ -61,7 +61,7 @@ export default function AdminSettings() {
     try {
       setDeletingSlug(deletingKey);
       setBrandError("");
-      await axios(
+      await api(
         `/api/brands?slug=${encodeURIComponent(brandSlug)}&modelSlug=${encodeURIComponent(modelSlug)}`,
         {
           method: "DELETE",

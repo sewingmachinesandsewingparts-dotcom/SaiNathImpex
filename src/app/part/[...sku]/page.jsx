@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import { formatINR } from "@/src/lib/format";
-import axios from "axios";
+import api from "@/src/utils/api";
 import { useCart } from "@/src/lib/cart-context";
 import { toast, Toaster } from "sonner";
 import {
@@ -99,7 +99,7 @@ export default function PartPage({ params }) {
     setReviewMessage("");
 
     try {
-      const { data: updated } = await axios(`/api/parts/${encodeURIComponent(part.sku)}`, {
+      const { data: updated } = await api(`/api/parts/${encodeURIComponent(part.sku)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify({ action: "delete", reviewId, name: userName }),
@@ -128,8 +128,8 @@ export default function PartPage({ params }) {
     const loadPart = async () => {
       try {
         const [{ data }, authResponse] = await Promise.all([
-          axios(`/api/parts/${encodeURIComponent(sku)}`),
-          axios.get("/api/auth").catch(() => ({ data: { user: null } })),
+          api(`/api/parts/${encodeURIComponent(sku)}`),
+          api.get("/api/auth").catch(() => ({ data: { user: null } })),
         ]);
 
         if (canceled) return;
@@ -139,7 +139,7 @@ export default function PartPage({ params }) {
         setUserId(authResponse.data?.user?.id || null);
         setUserName(authResponse.data?.user?.name || "Guest");
 
-        const relatedResponse = await axios(`/api/parts?brand=${data.brandSlug}`);
+        const relatedResponse = await api(`/api/parts?brand=${data.brandSlug}`);
         if (canceled) return;
         setRelated(relatedResponse.data.filter((p) => p.sku !== sku).slice(0, 4));
       } catch (err) {
@@ -160,7 +160,7 @@ export default function PartPage({ params }) {
   // Adjust related list when part finishes loading
   useEffect(() => {
     if (part) {
-      axios(`/api/parts?brand=${part.brandSlug}`)
+      api(`/api/parts?brand=${part.brandSlug}`)
         .then((res) => res.data)
         .then((data) => {
           setRelated(data.filter((p) => p.sku !== sku).slice(0, 4));
@@ -591,7 +591,7 @@ export default function PartPage({ params }) {
                           comment: reviewComment,
                         };
 
-                        const { data: updated } = await axios(`/api/parts/${encodeURIComponent(part.sku)}`, {
+                        const { data: updated } = await api(`/api/parts/${encodeURIComponent(part.sku)}`, {
                           method: editingReviewId ? "PATCH" : "POST",
                           headers: { "Content-Type": "application/json" },
                           data: JSON.stringify(payload),

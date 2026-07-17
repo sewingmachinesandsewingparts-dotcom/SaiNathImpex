@@ -7,7 +7,7 @@ import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import { formatINR } from "@/src/lib/format";
 import { useCart } from "@/src/lib/cart-context";
-import api from "@/src/lib/axios";
+import api from "@/src/utils/api";
 
 function buildSaleLink(sale) {
   if (!sale || !sale.scope) return "/catalog";

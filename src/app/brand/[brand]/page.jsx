@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
-import axios from 'axios';
+import api from '@/src/utils/api';
 
 export default function BrandPage({ params }) {
   const resolvedParams = use(params);
@@ -23,7 +23,7 @@ export default function BrandPage({ params }) {
     }
     setLoading(true);
     // Fetch brands to find current one
-    axios("/api/brands")
+    api("/api/brands")
       .then((res) => res.data)
       .then((data) => {
         const found = data.find((x) => x.slug === brandSlug);
@@ -32,7 +32,7 @@ export default function BrandPage({ params }) {
       .catch((err) => console.error("Error loading brand data:", err));
 
     // Fetch parts for this brand
-    axios(`/api/parts?brand=${brandSlug}`)
+    api(`/api/parts?brand=${brandSlug}`)
       .then((res) => res.data)
       .then((data) => {
         setParts(data);

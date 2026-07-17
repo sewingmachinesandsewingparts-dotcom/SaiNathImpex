@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { AdminShell } from "@/src/components/admin-shell";
 import { formatINR } from "@/src/lib/format";
-import axios from 'axios';
+import api from "@/src/utils/api";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios("/api/orders")
+    api("/api/orders")
       .then((r) => r.data)
       .then((data) => {
         setOrders(data);
