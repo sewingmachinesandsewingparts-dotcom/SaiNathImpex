@@ -38,6 +38,10 @@ function validateSignup(email, password, name) {
   return null;
 }
 
+/**
+ * GET: Checks the active session using the encrypted session cookie.
+ * Returns the currently logged in user profile, or null.
+ */
 export async function GET(request) {
   await connectMongo();
   try {
@@ -67,6 +71,10 @@ function isGoogleAccountEmail(email) {
   return /@(gmail\.com|googlemail\.com)$/i.test(String(email || ""));
 }
 
+/**
+ * POST: Handles traditional email/password based sign in ("mode=in")
+ * and user account registration ("mode=up").
+ */
 export async function POST(request) {
   await connectMongo();
 
@@ -175,6 +183,9 @@ export async function POST(request) {
   }
 }
 
+/**
+ * DELETE: Clears the session auth cookie, logging the user out.
+ */
 export async function DELETE() {
   return new Response(JSON.stringify({ user: null }), {
     status: 200,

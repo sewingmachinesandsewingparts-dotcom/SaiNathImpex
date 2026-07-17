@@ -29,6 +29,16 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageGroups, setImageGroups] = useState([[]]);
   const [brandRecords, setBrandRecords] = useState(BRANDS);
+  const [compatibleList, setCompatibleList] = useState([]);
+  const [compatBrand, setCompatBrand] = useState("");
+  const [compatModelsInput, setCompatModelsInput] = useState("");
+  const [partsIndex, setPartsIndex] = useState([]);
+  const [seriesMap, setSeriesMap] = useState({});
+  const [selectedSeries, setSelectedSeries] = useState("");
+  const [selectedSeriesProducts, setSelectedSeriesProducts] = useState([]);
+  const [newSeriesCode, setNewSeriesCode] = useState("1");
+  const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("1,2,3,4,5,6");
+  const [createdDefaultSeries, setCreatedDefaultSeries] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState("");
   const [brandCreateValue, setBrandCreateValue] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -51,7 +61,39 @@ export default function NewProductPage() {
     };
 
     loadBrands();
+    const loadParts = async () => {
+      try {
+        const res = await axios('/api/parts');
+        const data = res.data || [];
+        setPartsIndex(data);
+        const map = {};
+        for (const p of data) {
+          const key = (p.id1 || '').trim();
+          if (!key) continue;
+          map[key] = map[key] || [];
+          map[key].push(p);
+        }
+        setSeriesMap(map);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadParts();
   }, []);
+
+  useEffect(() => {
+    if (createdDefaultSeries) return;
+    const code = "1";
+    if (!seriesMap || seriesMap[code]) { setCreatedDefaultSeries(true); return; }
+    const products = ["1","2","3","4","5","6"];
+    const next = { ...seriesMap };
+    next[code] = products.map(p => ({ sku: p, code: p, name: p }));
+    setSeriesMap(next);
+    setSelectedSeries(code);
+    setSelectedSeriesProducts(products.slice());
+    setCreatedDefaultSeries(true);
+  }, [seriesMap, createdDefaultSeries]);
 
   const handleImageChange = (event, index) => {
     const files = Array.from(event.target.files || []);
@@ -75,13 +117,39 @@ export default function NewProductPage() {
 
     try {
       const form = new FormData(event.currentTarget);
+      form.delete("images");
+      const uniqueFiles = new Map();
+      imageGroups.flat().forEach((file) => {
+        if (!file || typeof file.size !== "number") return;
+        const fileKey = `${file.name}|${file.size}|${file.lastModified}`;
+        if (!uniqueFiles.has(fileKey)) uniqueFiles.set(fileKey, file);
+      });
+      for (const file of uniqueFiles.values()) {
+        form.append("images", file);
+      }
+      // consolidate compatibleList by brand (merge machines) before sending
+      const consolidate = (list) => {
+        const map = new Map();
+        for (const item of list || []) {
+          const b = (item.brand || "").trim();
+          if (!b) continue;
+          const set = map.get(b) || new Set();
+          for (const m of item.machines || []) set.add(m);
+          map.set(b, set);
+        }
+        return Array.from(map.entries()).map(([brand, set]) => ({
+          brand,
+          machines: Array.from(set).map((model) => ({ model }))
+        }));
+      };
+
+      form.set("compatibleBrands", JSON.stringify(consolidate(compatibleList || [])));
       const skuValue = form.get("sku")?.toString().trim();
       if (!skuValue) {
         const fallbackSku = `PART-${Date.now().toString().slice(-6)}`;
         form.set("sku", fallbackSku);
       }
       form.set("mode", mode);
-      imageGroups.flat().forEach((file) => form.append("images", file));
       const explicitPartCode = form.get("brandNameOverride")?.toString().trim();
       const resolvedBrandName = selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim();
       const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
@@ -130,6 +198,11 @@ export default function NewProductPage() {
       form.set("sku", generatedSku);
       form.set("id1", seriesCode);
       form.set("id2", iscCode || "");
+
+      // Set linkedSeries using the resolved seriesCode as the key
+      // Include the new product's own SKU in the products list
+      const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
+      form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
 
       const response = await axios.post("/api/parts", form);
 
@@ -309,6 +382,14 @@ export default function NewProductPage() {
                       />
                     )}
                   </label>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Department</span>
+                    <input name="taxonomy.department" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" placeholder="Machine Parts" />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Sub-category</span>
+                    <input name="taxonomy.subCategory" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" placeholder="Hemmer Foot" />
+                  </label>
                 </>
               ) : (
                 <label className="block">
@@ -344,6 +425,24 @@ export default function NewProductPage() {
                   )}
                 </label>
               )}
+            </div>
+          </section>
+
+          <section className="hairline bg-card p-6">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">Manufacturer</div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Inp name="manufacturer" label="Manufacturer" placeholder="JUKI" />
+              <Inp name="manufacturerCountry" label="Manufacturer country" placeholder="Japan" />
+            </div>
+            <div className="mt-3">
+              <label className="block">
+                <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Status</span>
+                <select name="status" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Discontinued">Discontinued</option>
+                </select>
+              </label>
             </div>
           </section>
 
@@ -384,6 +483,154 @@ export default function NewProductPage() {
           <section className="hairline bg-card p-6 space-y-4">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">
               Step 03 · Compatibility & Specs
+            </div>
+            <div className="space-y-3">
+              <div className="font-mono text-[11px] tracking-widest uppercase text-copper">Compatibility (existing brands/models)</div>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Brand</span>
+                  <select className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={compatBrand} onChange={(e)=>setCompatBrand(e.target.value)}>
+                    <option value="">Select brand</option>
+                    {brandRecords.map(b=> <option key={b.slug||b.name} value={b.name}>{b.name}</option>)}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Models (comma-separated)</span>
+                  <input className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={compatModelsInput} onChange={(e)=>setCompatModelsInput(e.target.value)} placeholder="DDL-8700, DDL-9000" />
+                </label>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!compatBrand) return;
+                      const models = compatModelsInput
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      if (models.length === 0) return;
+
+                      setCompatibleList((prev) => {
+                        const map = new Map();
+                        for (const item of prev) {
+                          const key = (item.brand || '').trim();
+                          if (!key) continue;
+                          const set = map.get(key) || new Set();
+                          for (const m of item.machines || []) set.add(m);
+                          map.set(key, set);
+                        }
+                        const incomingKey = compatBrand.trim();
+                        const incomingSet = map.get(incomingKey) || new Set();
+                        for (const m of models) incomingSet.add(m);
+                        map.set(incomingKey, incomingSet);
+
+                        const merged = [];
+                        for (const [brand, setVals] of map.entries()) {
+                          merged.push({ brand, machines: Array.from(setVals) });
+                        }
+                        return merged;
+                      });
+
+                      setCompatBrand('');
+                      setCompatModelsInput('');
+                    }}
+                    className="w-full h-10 bg-ink text-bone"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {compatibleList.length > 0 && (
+                <div className="mt-2">
+                  <div className="font-mono text-[10px] uppercase">Added compatibility</div>
+                  <ul className="list-disc pl-4">
+                    {compatibleList.map((c, i) => (
+                      <li key={i}>
+                        {c.brand}: {Array.from(new Set(c.machines)).join(', ')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="font-mono text-[11px] tracking-widest uppercase text-copper mt-4">Series linking</div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series code</span>
+                  <select className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={selectedSeries} onChange={(e)=>{
+                    const val = e.target.value; setSelectedSeries(val);
+                    setSelectedSeriesProducts(val ? (seriesMap[val] || []).map(p => p.sku) : []);
+                  }}>
+                    <option value="">Select series</option>
+                    {Object.keys(seriesMap).map(code=> <option key={code} value={code}>{code} ({seriesMap[code].length} products)</option>)}
+                  </select>
+                </label>
+
+                <div>
+                  <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Products in series</div>
+                  <div className="mt-2 max-h-32 overflow-auto border hairline p-2">
+                    {selectedSeries ? (
+                      <div className="text-sm">
+                        {(seriesMap[selectedSeries] || []).map((p, i) => {
+                          const code = p.code || p.id2 || p.sku || p.name || "";
+                          return (
+                            <label key={p.sku} className="inline-flex items-center mr-2">
+                              <input
+                                type="checkbox"
+                                value={p.sku}
+                                checked={selectedSeriesProducts.includes(p.sku)}
+                                onChange={(e) => {
+                                  const sku = e.target.value;
+                                  setSelectedSeriesProducts((prev) =>
+                                    e.target.checked ? [...prev, sku] : prev.filter((s) => s !== sku),
+                                  );
+                                }}
+                                className="mr-1"
+                              />
+                              <span>{code}</span>
+                              {i < (seriesMap[selectedSeries] || []).length - 1 && <span className="mx-1">,</span>}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+
+                      <>
+                      <div className="mt-3 border-t pt-3">
+                        <div className="font-mono text-[10px] tracking-widest uppercase text-copper">Create new series</div>
+                        <div className="grid sm:grid-cols-2 gap-3 mt-2">
+                          <label className="block">
+                            <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series code</span>
+                            <input className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={newSeriesCode} onChange={(e)=>setNewSeriesCode(e.target.value)} />
+                          </label>
+
+                          <label className="block">
+                            <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Products (comma-separated)</span>
+                            <input className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={newSeriesProductsInput} onChange={(e)=>setNewSeriesProductsInput(e.target.value)} />
+                          </label>
+
+                          <div className="flex items-end">
+                            <button type="button" onClick={() => {
+                              const code = (newSeriesCode || "").toString().trim();
+                              if (!code) return;
+                              const products = (newSeriesProductsInput || "").split(',').map(s=>s.trim()).filter(Boolean);
+                              const nextMap = { ...seriesMap };
+                              nextMap[code] = (nextMap[code] || []).concat(products.map(p=>({ sku: p, code: p, name: p })));
+                              setSeriesMap(nextMap);
+                              setSelectedSeries(code);
+                              setSelectedSeriesProducts(products.map(p=>p));
+                            }} className="w-full h-10 bg-ink text-bone">Create series</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">Choose a series to view products.</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Inp
@@ -438,7 +685,6 @@ export default function NewProductPage() {
                     type="file"
                     hidden
                     multiple
-                    name="images"
                     onChange={(event) => handleImageChange(event, index)}
                   />
                 </label>

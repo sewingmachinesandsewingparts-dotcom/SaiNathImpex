@@ -374,6 +374,7 @@ export default function PartPage({ params }) {
             {[
               { id: "specs", l: "Specifications" },
               { id: "compat", l: "Compatibility" },
+              { id: "series", l: "Series" },
               { id: "maint", l: "Maintenance" },
               { id: "reviews", l: `Reviews · ${part.reviews || 0}` },
             ].map((t) => (
@@ -445,6 +446,44 @@ export default function PartPage({ params }) {
                 )}
               </div>
             )}
+
+            {tab === "series" && (
+              <div className="space-y-4">
+                {part.series && part.series.length > 0 ? (
+                  part.series.map((s) => (
+                    <div key={s.code || s.id} className="hairline p-4 rounded-3xl">
+                      <div className="font-mono text-sm uppercase tracking-widest">{s.code} {s.name ? `· ${s.name}` : null}</div>
+                      {s.description && <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>}
+                      {s.products && s.products.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {s.products.map((p) => (
+                            <Link key={p.sku || p.code} href={`/part/${encodeURIComponent(p.sku || p.code)}`} className="hairline px-3 py-1.5 text-xs">
+                              {p.code || p.sku || p.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : part.linkedSeries && part.linkedSeries.series ? (
+                  <div className="hairline p-4 rounded-3xl">
+                    <div className="font-mono text-sm uppercase tracking-widest">Series {part.linkedSeries.series}</div>
+                    {part.linkedSeries.products && part.linkedSeries.products.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {part.linkedSeries.products.map((sku) => (
+                          <Link key={sku} href={`/part/${encodeURIComponent(sku)}`} className="hairline px-3 py-1.5 text-xs">
+                            {sku}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">No series linked for this part.</div>
+                )}
+              </div>
+            )}
+
             {tab === "maint" && part.maintenance && (
               <ul className="space-y-3">
                 {part.maintenance.lubrication && (

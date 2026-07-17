@@ -5,38 +5,56 @@ import axios from 'axios';
 
 const CartContext = createContext(null);
 
+/**
+ * CartProvider Context Wrapper
+ * 
+ * Performance Optimizations:
+ * 1. Removed full-catalog API fetch on mount.
+ * 2. Details of parts are now fetched dynamically and cached in state.
+ * 3. Empty initial states for cart and wishlist (cleared demo data).
+ */
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  // Local parts cache containing details for cart & wishlist items
   const [parts, setParts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch parts catalog on mount to resolve sku details in cart
+  // Dynamic on-demand parts fetcher
   useEffect(() => {
-    axios("/api/parts")
-      .then((res) => res.data)
-      .then((data) => {
-        setParts(data);
+    // Find all unique SKUs currently needed (in cart or wishlist) that aren't already cached
+    const neededSkus = [
+      ...new Set([
+        ...cart.map((item) => item.sku),
+        ...wishlist,
+      ]),
+    ].filter((sku) => !parts.some((p) => p.sku === sku));
+
+    // If we already have details for all items, we can stop loading
+    if (neededSkus.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    
+    // Fetch only the specific SKUs we need
+    axios(`/api/parts?skus=${neededSkus.join(",")}`)
+      .then((res) => {
+        setParts((prev) => {
+          // Merge newly fetched parts with already cached ones
+          const newParts = res.data.filter((np) => !prev.some((p) => p.sku === np.sku));
+          return [...prev, ...newParts];
+        });
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to fetch parts in cart context:", err);
+        console.error("Failed to fetch needed parts in cart context:", err);
         setLoading(false);
       });
-  }, []);
+  }, [cart, wishlist]); // Runs only when cart or wishlist changes
 
-  useEffect(() => {
-    const defaultCart = [
-      { sku: "SKU-JUKI-HX48300", qty: 1 },
-      { sku: "SKU-SIRUBA-KD14", qty: 2 },
-      { sku: "SKU-OTHERS-EG01", qty: 4 },
-    ];
-    setCart(defaultCart);
-
-    const defaultWishlist = ["SKU-JUKI-MO6716-KNF", "SKU-OTHERS-MOT550", "SKU-BROTHER-S7200-FT"];
-    setWishlist(defaultWishlist);
-  }, []);
-
+  // Cart operations
   const saveCart = (newCart) => {
     setCart(newCart);
   };
@@ -89,7 +107,7 @@ export function CartProvider({ children }) {
     })
     .filter(Boolean);
 
-  const cartCount = cart.length;
+  const cartCount = cart.reduce((acc, curr) => acc + curr.qty, 0); // Calculate total quantity, not unique skus
   const wishlistCount = wishlist.length;
 
   return (

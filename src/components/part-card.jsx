@@ -4,7 +4,12 @@ import Link from "next/link";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "@/src/lib/cart-context";
 
-// Helper for formatting price in INR
+/**
+ * Formats a numeric value into Indian Rupee (INR) currency format.
+ * 
+ * @param {number} n - The amount to format.
+ * @returns {string} Formatted currency string.
+ */
 export const formatINR = (n) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -12,6 +17,15 @@ export const formatINR = (n) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+/**
+ * Renders a preview card of a compatible machine part.
+ * Includes interactive wishlist toggle and cart action buttons.
+ * 
+ * @param {object} props
+ * @param {object} props.part - The part document object.
+ * @param {number} [props.span=1] - Grid span layout.
+ * @param {("default"|"dark")} [props.variant="default"] - Card color theme style.
+ */
 export function PartCard({ part, span = 1, variant = "default" }) {
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
   const onSale = part.compareAt && part.compareAt > part.price;

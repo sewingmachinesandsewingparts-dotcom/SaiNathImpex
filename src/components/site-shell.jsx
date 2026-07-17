@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingCart, Heart, User, MessageCircle, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCart } from "@/src/lib/cart-context";
+import { useAuth } from "@/src/lib/use-auth";
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -17,13 +18,19 @@ const FALLBACK_BRANDS = [
   { slug: "pegasus", name: "PEGASUS" },
 ];
 
+/**
+ * SiteHeader component containing navigation, search, and user actions.
+ */
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [brands, setBrands] = useState(FALLBACK_BRANDS);
-  const [authUser, setAuthUser] = useState(null);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Use the shared cached auth hook
+  const { user: authUser } = useAuth();
+  
   const accountHref = authUser
     ? ["admin", "superadmin"].includes(authUser.role)
       ? "/admin"
@@ -31,6 +38,7 @@ export function SiteHeader() {
     : "/auth";
   const { cartCount, wishlistCount } = useCart();
 
+  // Prefetch and fetch brands only once on mount (no router/pathname dependency loop)
   useEffect(() => {
     const commonRoutes = [
       "/catalog",
@@ -55,19 +63,9 @@ export function SiteHeader() {
         }
       })
       .catch((err) => console.error("Error loading brands in header:", err));
+  }, [router]);
 
-    axios
-      .get("/api/auth")
-      .then((res) => {
-        setAuthUser(res.data.user || null);
-        setImageError(false);
-      })
-      .catch(() => {
-        setAuthUser(null);
-        setImageError(false);
-      });
-  }, [router, pathname]);
-
+  // Handle blocking notification once globally per session via axios interceptor
   useEffect(() => {
     const id = axios.interceptors.response.use(
       (res) => res,
@@ -229,15 +227,11 @@ export function SiteHeader() {
   );
 }
 
+/**
+ * SiteFooter component showing GST details, certifications, and useful site links.
+ */
 export function SiteFooter() {
-  const [authUser, setAuthUser] = useState(null);
-
-  useEffect(() => {
-    axios
-      .get("/api/auth")
-      .then((res) => setAuthUser(res.data.user || null))
-      .catch(() => setAuthUser(null));
-  }, []);
+  const { user: authUser } = useAuth();
 
   return (
     <footer className="mt-24 border-t border-border bg-ink text-bone">

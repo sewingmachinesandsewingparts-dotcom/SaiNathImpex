@@ -1,9 +1,10 @@
 import connectMongo from "@/src/lib/mongo";
 import Part from "@/src/models/Part";
 import { deleteCloudinaryImages } from "@/src/lib/cloudinary";
-import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData } from "@/src/lib/part";
+import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData, syncPartSeries } from "@/src/lib/part";
 import { getAuthCookie } from "@/src/lib/auth";
 import { jsonResponse, notFound, errorResponse, safeString } from "@/src/lib/api";
+import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
 function normalizeSku(value) {
   let skuValue = Array.isArray(value) ? value.join("/") : value;
@@ -23,7 +24,7 @@ export async function GET(request, { params }) {
   const sku = normalizeSku(resolvedParams.sku);
 
   try {
-    const part = await Part.findOne({ sku });
+    const part = await Part.findOne({ sku }).lean();
     if (!part) {
       return notFound(`Part not found with SKU ${sku}`);
     }
@@ -151,6 +152,12 @@ export async function PATCH(request, { params }) {
 
 export async function PUT(request, { params }) {
   await connectMongo();
+
+  const actor = await getActorFromRequest(request);
+  if (!canAccessAdminModule(actor, "parts")) {
+    return errorResponse("Unauthorized. Admin access required.", 403);
+  }
+
   const resolvedParams = await params;
   const sku = normalizeSku(resolvedParams.sku);
 
@@ -162,8 +169,17 @@ export async function PUT(request, { params }) {
 
     const formData = await request.formData();
     const uploadFolder = `Home/Products/${safeString(existingPart.name || existingPart.sku)}`;
+    console.log('[api/parts/PUT] formData keys:', Array.from(formData.keys()));
     const uploadedUrls = await saveUploadedImages(formData.getAll("images"), uploadFolder);
     const deletedImageUrls = formData.getAll("deletedImageUrls").filter(Boolean);
+
+    try {
+      const parsed = parsePartFormData(formData);
+      console.log('[api/parts/PUT] compatibleBrands:', JSON.stringify(parsed.compatibleBrands).slice(0,1000));
+      console.log('[api/parts/PUT] linkedSeries:', JSON.stringify(parsed.linkedSeries).slice(0,1000));
+    } catch (e) {
+      console.warn('[api/parts/PUT] parse error', e.message);
+    }
 
     if (deletedImageUrls.length > 0) {
       await deleteCloudinaryImages(deletedImageUrls);
@@ -175,6 +191,13 @@ export async function PUT(request, { params }) {
       modelName: values.modelName,
       isCategoryMode: values.mode === "category",
     });
+
+    const oldLinkedSeries = existingPart.linkedSeries
+      ? {
+          series: existingPart.linkedSeries.series || "",
+          products: existingPart.linkedSeries.products ? [...existingPart.linkedSeries.products] : [],
+        }
+      : { series: "", products: [] };
 
     const updatedPart = await Part.findOneAndUpdate(
       { sku },
@@ -190,14 +213,23 @@ export async function PUT(request, { params }) {
       { new: true },
     );
 
+    await syncPartSeries(updatedPart.sku, oldLinkedSeries, updatedPart.linkedSeries);
+
     return jsonResponse(updatedPart);
   } catch (error) {
+    console.error('[api/parts/PUT] Error updating product:', error);
     return errorResponse(error.message, 400);
   }
 }
 
 export async function DELETE(request, { params }) {
   await connectMongo();
+
+  const actor = await getActorFromRequest(request);
+  if (!canAccessAdminModule(actor, "parts")) {
+    return errorResponse("Unauthorized. Admin access required.", 403);
+  }
+
   const resolvedParams = await params;
   const sku = normalizeSku(resolvedParams.sku);
 
@@ -205,6 +237,24 @@ export async function DELETE(request, { params }) {
     const part = await Part.findOneAndDelete({ sku });
     if (!part) {
       return notFound(`Part not found with SKU ${sku}`);
+    }
+
+    if (part.linkedSeries?.series && part.linkedSeries.products?.length > 0) {
+      const siblingSkus = part.linkedSeries.products.filter((s) => s !== sku);
+      if (siblingSkus.length > 0) {
+        await Part.updateMany(
+          { sku: { $in: siblingSkus } },
+          { $pull: { "linkedSeries.products": sku } }
+        );
+        // Clean up sibling parts left alone
+        const siblings = await Part.find({ sku: { $in: siblingSkus } });
+        for (const sib of siblings) {
+          if ((sib.linkedSeries?.products || []).length <= 1) {
+            sib.linkedSeries = { series: "", products: [] };
+            await sib.save();
+          }
+        }
+      }
     }
 
     if (part.images?.length) {

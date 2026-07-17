@@ -429,4 +429,61 @@ if the category is selected then the data will be show like -->  (<Brand> for <B
 --><Brand> <Category>  <Brand Code>-<Series Code>  <ISE Code >
 from this product name --> Hengxu Eye Guard Hx-35000 R53
 to SKU of this -->HEN-EG-HX35000-R53
---><Brand (create a custom brand name and select from receny created)>-<Category>-<Brand Code><Series Code>-<ISE Code >
+--><Brand (create a custom brand name and select from receny created)><Category>-<Brand Code><Series Code>-<ISE Code >
+
+
+
+
+{
+  "_id": {
+    "$oid": "6a560aeeb045b26dfce739f2"
+  },
+  "sku": "HEN-PF-HX35012-747V",
+  "id1": "35012",
+  "id2": "747V",
+  "name": "Hengxu Presser Foot Hx-35012 747V",
+  "description": "newwith SKU",
+  "price": 1233,
+  "compareAt": 2333,
+  "stock": 45,
+  "hasMotor": false,
+  "diagramNumber": "D-112",
+  "altPartNumbers": [
+    "11"
+  ],
+  "images": [
+    "https://res.cloudinary.com/ck1z5bvn/image/upload/v1784023789/Home/Products/Hengxu%20Presser%20Foot%20Hx-35012%20747V/Home/Products/Hengxu-Presser-Foot-Hx-35012-747V/1784023786274-IMG_20260713_123010.jpg.jpeg.jpg",
+    "https://res.cloudinary.com/ck1z5bvn/image/upload/v1784023790/Home/Products/Hengxu%20Presser%20Foot%20Hx-35012%20747V/Home/Products/Hengxu-Presser-Foot-Hx-35012-747V/1784023788896-IMG_20260713_123010.jpg.jpeg.jpg"
+  ],
+  "compat": {
+    "machineModels": [
+      "Juki-100"
+    ],
+    "needleSystem": "DBx1",
+    "threadType": "Cotton",
+    "stitchType": [
+      "Lockstitch"
+    ]
+  },
+  "specs": {
+    "material": "Steel",
+    "weight": "56"
+  },
+  "maintenance": {
+    "replacementInterval_hours": 2000
+  },
+  "brandSlug": "hengxu",
+  "brandName": "Hengxu",
+  "modelSlug": "hx-35000",
+  "modelName": "HX-35000",
+  "rating": 0,
+  "reviews": 0,
+  "reviewEntries": [],
+  "createdAt": {
+    "$date": "2026-07-14T10:09:50.126Z"
+  },
+  "updatedAt": {
+    "$date": "2026-07-14T10:55:43.859Z"
+  },
+  "__v": 0
+}

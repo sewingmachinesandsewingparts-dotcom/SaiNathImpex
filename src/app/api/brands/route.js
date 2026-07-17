@@ -1,13 +1,17 @@
 import connectMongo from "@/src/lib/mongo";
 import Brand from "@/src/models/Brand";
 import { jsonResponse, badRequest, notFound, errorResponse, parseSearchParam } from "@/src/lib/api";
+import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
 export async function GET() {
   await connectMongo();
 
   try {
-    const brands = await Brand.find({});
-    return jsonResponse(brands);
+    const brands = await Brand.find({}).lean();
+    // Cache brands list for 60 seconds, stale-while-revalidate for 5 minutes
+    return jsonResponse(brands, 200, {
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    });
   } catch (error) {
     return errorResponse(error.message);
   }
@@ -15,6 +19,11 @@ export async function GET() {
 
 export async function DELETE(request) {
   await connectMongo();
+
+  const actor = await getActorFromRequest(request);
+  if (!canAccessAdminModule(actor, "brands")) {
+    return errorResponse("Unauthorized. Admin access required.", 403);
+  }
 
   try {
     const slug = parseSearchParam(request, "slug");

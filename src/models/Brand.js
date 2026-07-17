@@ -18,5 +18,7 @@ const brandSchema = new mongoose.Schema(
   },
 );
 
+brandSchema.index({ "models.slug": 1 });
+
 const Brand = mongoose.models.Brand || mongoose.model("Brand", brandSchema);
 export default Brand;

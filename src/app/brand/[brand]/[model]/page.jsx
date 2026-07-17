@@ -19,28 +19,26 @@ export default function ModelPage({ params }) {
 
   useEffect(() => {
     setLoading(true);
-    // Fetch brands
-    axios("/api/brands")
-      .then((res) => res.data)
-      .then((data) => {
-        const foundBrand = data.find((x) => x.slug === brandSlug);
+
+    // Fetch both the brands info and compatible parts in parallel
+    Promise.all([
+      axios("/api/brands").then((res) => res.data),
+      axios(`/api/parts?brand=${brandSlug}&model=${modelSlug}`).then((res) => res.data),
+    ])
+      .then(([brands, partsData]) => {
+        // Resolve brand and specific model slugs
+        const foundBrand = brands.find((x) => x.slug === brandSlug);
         if (foundBrand) {
           setBrand(foundBrand);
-          const foundModel = foundBrand.models.find((x) => x.slug === modelSlug);
-          setModel(foundModel);
+          const foundModel = foundBrand.models?.find((x) => x.slug === modelSlug);
+          setModel(foundModel || null);
         }
-      })
-      .catch((err) => console.error("Error loading brand info:", err));
-
-    // Fetch parts for this model/category
-    axios(`/api/parts?brand=${brandSlug}&category=${modelSlug}`)
-      .then((res) => res.data)
-      .then((data) => {
-        setParts(data);
-        setLoading(false);
+        setParts(partsData || []);
       })
       .catch((err) => {
-        console.error("Error loading model parts:", err);
+        console.error("Error loading model page data:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [brandSlug, modelSlug]);

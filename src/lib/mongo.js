@@ -23,6 +23,7 @@ async function connectMongo() {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         dbName: "stitch-parts-finder",
+        bufferCommands: false, // Prevents queries from buffering and hanging if connection drops
       })
       .then((mongooseInstance) => mongooseInstance);
   }

@@ -4,9 +4,35 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Upload, Save, X } from "lucide-react";
 import { AdminShell } from "@/src/components/admin-shell";
-import axios from 'axios';
+import axios from "axios";
+import { buildProductName, buildSku } from "@/src/lib/sku";
 
 const CATEGORY_OPTIONS = ["Eye Guard", "Puller", "Folder", "Needle Plate", "Presser Foot", "Motor"];
+
+function extractPartCodeFromSku(sku, seriesCode, hasBrand) {
+  if (!sku) return "";
+  const parts = sku.split("-");
+  const searchSeries = String(seriesCode || "").trim().toUpperCase();
+
+  if (searchSeries && parts.length >= 3 && parts[parts.length - 1].toUpperCase() === searchSeries) {
+    return parts[parts.length - 2] || "";
+  }
+
+  let modelSeries = "";
+  if (hasBrand) {
+    modelSeries = parts.length >= 3 ? parts[2] : "";
+  } else {
+    modelSeries = parts.length >= 2 ? parts[1] : "";
+  }
+
+  if (!modelSeries) return "";
+  const upperModelSeries = modelSeries.toUpperCase();
+  if (searchSeries && upperModelSeries.endsWith(searchSeries)) {
+    return modelSeries.slice(0, modelSeries.length - searchSeries.length);
+  }
+
+  return modelSeries;
+}
 
 function normalizeSku(value) {
   let skuValue = Array.isArray(value) ? value.join("/") : value;
@@ -40,7 +66,17 @@ export default function EditProductPage() {
   const [modelCreateValue, setModelCreateValue] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryCreateValue, setCategoryCreateValue] = useState("");
-  
+  const [partCode, setPartCode] = useState("");
+
+  const [compatibleList, setCompatibleList] = useState([]);
+  const [compatBrand, setCompatBrand] = useState("");
+  const [compatModelsInput, setCompatModelsInput] = useState("");
+  const [partsIndex, setPartsIndex] = useState([]);
+  const [seriesMap, setSeriesMap] = useState({});
+  const [selectedSeries, setSelectedSeries] = useState("");
+  const [selectedSeriesProducts, setSelectedSeriesProducts] = useState([]);
+  const [newSeriesCode, setNewSeriesCode] = useState("");
+  const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("");
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -73,6 +109,26 @@ export default function EditProductPage() {
     };
 
     loadBrands();
+
+    const loadParts = async () => {
+      try {
+        const res = await axios('/api/parts');
+        const data = res.data || [];
+        setPartsIndex(data);
+        const map = {};
+        for (const p of data) {
+          const key = (p.id1 || '').trim();
+          if (!key) continue;
+          map[key] = map[key] || [];
+          map[key].push(p);
+        }
+        setSeriesMap(map);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadParts();
   }, []);
 
   useEffect(() => {
@@ -89,6 +145,25 @@ export default function EditProductPage() {
     const isKnownCategory = categoryRoot && CATEGORY_OPTIONS.includes(categoryRoot);
     setSelectedCategory(isKnownCategory ? categoryRoot : categoryRoot ? "+ Create new" : "");
     setCategoryCreateValue(isKnownCategory ? "" : categoryRoot);
+
+    const initialSeriesCode = product.id1?.trim() || "";
+    const initialPartCode = product.brandName?.trim()
+      ? extractPartCodeFromSku(product.sku, initialSeriesCode, true)
+      : product.id1?.trim() || extractPartCodeFromSku(product.sku, initialSeriesCode, false);
+    setPartCode(initialPartCode);
+
+    // Populate compatibleList from product
+    const initialCompatList = (product.compatibleBrands || []).map((cb) => ({
+      brand: cb.brand || "",
+      machines: (cb.machines || []).map((m) => (typeof m === "string" ? m : m.model || "")).filter(Boolean),
+    }));
+    setCompatibleList(initialCompatList);
+
+    // Populate linkedSeries from product
+    if (product.linkedSeries) {
+      setSelectedSeries(product.linkedSeries.series || "");
+      setSelectedSeriesProducts(product.linkedSeries.products || []);
+    }
   }, [product, brandRecords]);
 
   const handleImageChange = (event, index) => {
@@ -116,19 +191,40 @@ export default function EditProductPage() {
 
     try {
       const form = new FormData(event.currentTarget);
+      form.delete("images");
+      const uniqueFiles = new Map();
+      imageGroups.flat().forEach((file) => {
+        if (!file || typeof file.size !== "number") return;
+        const fileKey = `${file.name}|${file.size}|${file.lastModified}`;
+        if (!uniqueFiles.has(fileKey)) uniqueFiles.set(fileKey, file);
+      });
+      for (const file of uniqueFiles.values()) {
+        form.append("images", file);
+      }
       form.set("mode", mode);
-      imageGroups.flat().forEach((file) => form.append("images", file));
 
       if (deletedImages.length > 0) {
         deletedImages.forEach((url) => form.append("deletedImageUrls", url));
       }
 
+      const explicitPartCode = form.get("partCode")?.toString().trim();
       const explicitBrandName = form.get("brandName")?.toString().trim();
-      const resolvedBrandName = explicitBrandName || (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
-      const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
-      const categoryText = selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
+      const resolvedBrandName =
+        explicitBrandName ||
+        (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
+      const resolvedModelName =
+        selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
+      const categoryText =
+        selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
+      const seriesCode = form.get("id1")?.toString().trim();
+      const iscCode = form.get("id2")?.toString().trim();
+      const hasBrandName = Boolean(resolvedBrandName);
+      const parsedPartCode = hasBrandName
+        ? extractPartCodeFromSku(product.sku, seriesCode, true)
+        : product.id1?.trim() || extractPartCodeFromSku(product.sku, seriesCode, false);
+      const resolvedPartCode = explicitPartCode || parsedPartCode || "";
 
-      if (!resolvedBrandName) {
+      if (mode === "brand" && !resolvedBrandName) {
         setStatusMessage("Brand name is required to update the product.");
         setIsSubmitting(false);
         return;
@@ -140,9 +236,62 @@ export default function EditProductPage() {
         return;
       }
 
+      if (!resolvedPartCode) {
+        setStatusMessage("Part code is required to generate SKU and product details.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!seriesCode) {
+        setStatusMessage("Series code (Part #1) is required to generate SKU and product details.");
+        setIsSubmitting(false);
+        return;
+      }
+
       form.set("brandName", resolvedBrandName || "");
       form.set("modelName", resolvedModelName || "");
       form.set("categoryRoot", categoryText);
+      form.set("partCode", resolvedPartCode);
+
+      const generatedSku = buildSku(
+        categoryText,
+        resolvedPartCode,
+        seriesCode,
+        iscCode || "",
+        resolvedBrandName,
+      );
+      const generatedName = buildProductName(
+        categoryText,
+        resolvedPartCode,
+        seriesCode,
+        iscCode || "",
+        resolvedBrandName,
+      );
+
+      form.set("name", generatedName);
+      form.set("sku", generatedSku);
+
+      // consolidate compatibleList by brand (merge machines) before sending
+      const consolidate = (list) => {
+        const map = new Map();
+        for (const item of list || []) {
+          const b = (item.brand || "").trim();
+          if (!b) continue;
+          const set = map.get(b) || new Set();
+          for (const m of item.machines || []) set.add(m);
+          map.set(b, set);
+        }
+        return Array.from(map.entries()).map(([brand, set]) => ({
+          brand,
+          machines: Array.from(set).map((model) => ({ model }))
+        }));
+      };
+
+      form.set("compatibleBrands", JSON.stringify(consolidate(compatibleList || [])));
+
+      // Use resolved seriesCode as the series key; include this product's SKU in the products list
+      const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
+      form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
 
       await axios(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
@@ -153,7 +302,8 @@ export default function EditProductPage() {
       setTimeout(() => router.push("/admin/products"), 1500);
     } catch (error) {
       console.error(error);
-      setStatusMessage(error.message || "Failed to update product.");
+      const serverMsg = error.response?.data?.error || error.response?.data?.message;
+      setStatusMessage(serverMsg || error.message || "Failed to update product.");
     } finally {
       setIsSubmitting(false);
     }
@@ -185,8 +335,13 @@ export default function EditProductPage() {
         <input
           type="hidden"
           name="categoryRoot"
-          value={selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim()}
+          value={
+            selectedCategory === "+ Create new"
+              ? categoryCreateValue.trim()
+              : selectedCategory.trim()
+          }
         />
+        <input type="hidden" name="partCode" value={partCode} />
         <div className="lg:col-span-2 space-y-6">
           <section className="hairline bg-card p-6 space-y-4">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">
@@ -212,7 +367,9 @@ export default function EditProductPage() {
               </button>
             </div>
 
-            <div className={`mt-4 grid ${mode === "brand" ? "sm:grid-cols-3" : "sm:grid-cols-1"} gap-3`}>
+            <div
+              className={`mt-4 grid ${mode === "brand" ? "sm:grid-cols-3" : "sm:grid-cols-1"} gap-3`}
+            >
               {mode === "brand" ? (
                 <>
                   <label className="block">
@@ -318,8 +475,34 @@ export default function EditProductPage() {
                       />
                     )}
                   </label>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Department</span>
+                    <input name="taxonomy.department" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" placeholder="Machine Parts" defaultValue={product.taxonomy?.department || ""} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Sub-category</span>
+                    <input name="taxonomy.subCategory" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" placeholder="Hemmer Foot" defaultValue={product.taxonomy?.subCategory || ""} />
+                  </label>
                 </>
               ) : null}
+            </div>
+          </section>
+
+          <section className="hairline bg-card p-6">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">Manufacturer</div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Inp name="manufacturer" label="Manufacturer" placeholder="JUKI" defaultValue={product.manufacturer} />
+              <Inp name="manufacturerCountry" label="Manufacturer country" placeholder="Japan" defaultValue={product.manufacturerCountry} />
+            </div>
+            <div className="mt-3">
+              <label className="block">
+                <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Status</span>
+                <select name="status" className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" defaultValue={product.status || "Active"}>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Discontinued">Discontinued</option>
+                </select>
+              </label>
             </div>
           </section>
 
@@ -384,6 +567,215 @@ export default function EditProductPage() {
           <section className="hairline bg-card p-6 space-y-4">
             <div className="font-mono text-[11px] tracking-widest uppercase text-copper mb-2">
               Compatibility & Specs
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="font-mono text-[11px] tracking-widest uppercase text-copper">Compatibility (existing brands/models)</div>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Brand</span>
+                  <select
+                    className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                    value={compatBrand}
+                    onChange={(e) => setCompatBrand(e.target.value)}
+                  >
+                    <option value="">Select brand</option>
+                    {brandRecords.map((b) => (
+                      <option key={b.slug || b.name} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Models (comma-separated)</span>
+                  <input
+                    className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                    value={compatModelsInput}
+                    onChange={(e) => setCompatModelsInput(e.target.value)}
+                    placeholder="DDL-8700, DDL-9000"
+                  />
+                </label>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!compatBrand) return;
+                      const models = compatModelsInput
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      if (models.length === 0) return;
+
+                      setCompatibleList((prev) => {
+                        const map = new Map();
+                        for (const item of prev) {
+                          const key = (item.brand || "").trim();
+                          if (!key) continue;
+                          const set = map.get(key) || new Set();
+                          for (const m of item.machines || []) set.add(m);
+                          map.set(key, set);
+                        }
+                        const incomingKey = compatBrand.trim();
+                        const incomingSet = map.get(incomingKey) || new Set();
+                        for (const m of models) incomingSet.add(m);
+                        map.set(incomingKey, incomingSet);
+
+                        const merged = [];
+                        for (const [brand, setVals] of map.entries()) {
+                          merged.push({ brand, machines: Array.from(setVals) });
+                        }
+                        return merged;
+                      });
+
+                      setCompatBrand("");
+                      setCompatModelsInput("");
+                    }}
+                    className="w-full h-10 bg-ink text-bone"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {compatibleList.length > 0 && (
+                <div className="mt-2">
+                  <div className="font-mono text-[10px] uppercase flex justify-between items-center">
+                    <span>Added compatibility</span>
+                    <button
+                      type="button"
+                      onClick={() => setCompatibleList([])}
+                      className="text-red-500 text-[9px] font-mono hover:underline uppercase"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <ul className="list-disc pl-4 space-y-1 mt-1">
+                    {compatibleList.map((c, i) => (
+                      <li key={i} className="text-xs flex justify-between items-center max-w-md">
+                        <span>
+                          {c.brand}: {Array.from(new Set(c.machines)).join(", ")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCompatibleList((prev) => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="text-red-500 hover:text-red-700 ml-2 font-mono text-[10px]"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="font-mono text-[11px] tracking-widest uppercase text-copper mt-4">Series linking</div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series code</span>
+                  <select
+                    className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                    value={selectedSeries}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedSeries(val);
+                      setSelectedSeriesProducts(val ? (seriesMap[val] || []).map((p) => p.sku) : []);
+                    }}
+                  >
+                    <option value="">Select series</option>
+                    {Object.keys(seriesMap).map((code) => (
+                      <option key={code} value={code}>
+                        {code} ({seriesMap[code].length} products)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div>
+                  <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Products in series</div>
+                  <div className="mt-2 max-h-32 overflow-auto border hairline p-2">
+                    {selectedSeries ? (
+                      <div className="text-sm">
+                        {(seriesMap[selectedSeries] || []).map((p, i) => {
+                          const code = p.code || p.id2 || p.sku || p.name || "";
+                          return (
+                            <label key={p.sku} className="inline-flex items-center mr-2">
+                              <input
+                                type="checkbox"
+                                value={p.sku}
+                                checked={selectedSeriesProducts.includes(p.sku)}
+                                onChange={(e) => {
+                                  const skuVal = e.target.value;
+                                  setSelectedSeriesProducts((prev) =>
+                                    e.target.checked ? [...prev, skuVal] : prev.filter((s) => s !== skuVal),
+                                  );
+                                }}
+                                className="mr-1"
+                              />
+                              <span>{code}</span>
+                              {i < (seriesMap[selectedSeries] || []).length - 1 && <span className="mx-1">,</span>}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-3 border-t pt-3">
+                          <div className="font-mono text-[10px] tracking-widest uppercase text-copper">Create new series</div>
+                          <div className="grid sm:grid-cols-2 gap-3 mt-2">
+                            <label className="block">
+                              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series code</span>
+                              <input
+                                className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                                value={newSeriesCode}
+                                onChange={(e) => setNewSeriesCode(e.target.value)}
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Products (comma-separated)</span>
+                              <input
+                                className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                                value={newSeriesProductsInput}
+                                onChange={(e) => setNewSeriesProductsInput(e.target.value)}
+                              />
+                            </label>
+
+                            <div className="flex items-end">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const code = (newSeriesCode || "").toString().trim();
+                                  if (!code) return;
+                                  const products = (newSeriesProductsInput || "")
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean);
+                                  const nextMap = { ...seriesMap };
+                                  nextMap[code] = (nextMap[code] || []).concat(
+                                    products.map((p) => ({ sku: p, code: p, name: p })),
+                                  );
+                                  setSeriesMap(nextMap);
+                                  setSelectedSeries(code);
+                                  setSelectedSeriesProducts(products.map((p) => p));
+                                }}
+                                className="w-full h-10 bg-ink text-bone"
+                              >
+                                Create series
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">Choose a series to view products.</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Inp
@@ -486,7 +878,6 @@ export default function EditProductPage() {
                     type="file"
                     hidden
                     multiple
-                    name="images"
                     onChange={(event) => handleImageChange(event, index)}
                   />
                 </label>
@@ -524,6 +915,7 @@ export default function EditProductPage() {
                 defaultValue={product.compareAt}
               />
               <Inp name="stock" label="Stock" placeholder="42" defaultValue={product.stock} />
+              <Inp name="stockAlert" label="Needed stock alert" placeholder="20" defaultValue={product.stockAlert} />
 
               <label className="flex items-center gap-2 text-sm pt-2">
                 <input
@@ -533,6 +925,11 @@ export default function EditProductPage() {
                   defaultChecked={product.hasMotor}
                 />
                 Contains motor (18% GST)
+              </label>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="active" className="accent-copper" defaultChecked={product.status === "Active" || product.active !== false} />
+                Active in store
               </label>
             </div>
           </section>
