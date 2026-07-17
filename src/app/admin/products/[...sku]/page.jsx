@@ -67,6 +67,7 @@ export default function EditProductPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryCreateValue, setCategoryCreateValue] = useState("");
   const [partCode, setPartCode] = useState("");
+<<<<<<< HEAD
 
   const [compatibleList, setCompatibleList] = useState([]);
   const [compatBrand, setCompatBrand] = useState("");
@@ -77,6 +78,8 @@ export default function EditProductPage() {
   const [selectedSeriesProducts, setSelectedSeriesProducts] = useState([]);
   const [newSeriesCode, setNewSeriesCode] = useState("");
   const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("");
+=======
+>>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -151,6 +154,7 @@ export default function EditProductPage() {
       ? extractPartCodeFromSku(product.sku, initialSeriesCode, true)
       : product.id1?.trim() || extractPartCodeFromSku(product.sku, initialSeriesCode, false);
     setPartCode(initialPartCode);
+<<<<<<< HEAD
 
     // Populate compatibleList from product
     const initialCompatList = (product.compatibleBrands || []).map((cb) => ({
@@ -164,6 +168,8 @@ export default function EditProductPage() {
       setSelectedSeries(product.linkedSeries.series || "");
       setSelectedSeriesProducts(product.linkedSeries.products || []);
     }
+=======
+>>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
   }, [product, brandRecords]);
 
   const handleImageChange = (event, index) => {
@@ -270,6 +276,7 @@ export default function EditProductPage() {
 
       form.set("name", generatedName);
       form.set("sku", generatedSku);
+<<<<<<< HEAD
 
       // consolidate compatibleList by brand (merge machines) before sending
       const consolidate = (list) => {
@@ -292,6 +299,8 @@ export default function EditProductPage() {
       // Use resolved seriesCode as the series key; include this product's SKU in the products list
       const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
       form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
+=======
+>>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
 
       await axios(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
