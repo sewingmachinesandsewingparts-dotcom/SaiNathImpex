@@ -2,12 +2,13 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Auth() {
+// Inner component that uses useSearchParams — must be wrapped in Suspense
+function AuthInner() {
   const [mode, setMode] = useState("in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -208,6 +209,15 @@ export default function Auth() {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+// Default export wraps AuthInner in Suspense to satisfy Next.js static prerender requirements
+export default function Auth() {
+  return (
+    <Suspense fallback={null}>
+      <AuthInner />
+    </Suspense>
   );
 }
 
