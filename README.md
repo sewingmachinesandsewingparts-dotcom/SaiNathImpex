@@ -429,7 +429,6 @@ if the category is selected then the data will be show like -->  (<Brand> for <B
 --><Brand> <Category>  <Brand Code>-<Series Code>  <ISE Code >
 from this product name --> Hengxu Eye Guard Hx-35000 R53
 to SKU of this -->HEN-EG-HX35000-R53
-<<<<<<< HEAD
 --><Brand (create a custom brand name and select from receny created)><Category>-<Brand Code><Series Code>-<ISE Code >
 
 
@@ -488,6 +487,3 @@ to SKU of this -->HEN-EG-HX35000-R53
   },
   "__v": 0
 }
-=======
---><Brand (create a custom brand name and select from receny created)--><Category>-<Brand Code><Series Code>-<ISE Code >
->>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600

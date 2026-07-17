@@ -27,8 +27,6 @@ export async function saveUploadedImages(files, folder = "Home/Products") {
     console.log("[lib/part] saveUploadedImages called with empty files");
     return [];
   }
-<<<<<<< HEAD
-
   // Deduplicate files by name|size|lastModified to avoid double uploads
   const uniqueMap = new Map();
   for (const file of files) {
@@ -38,9 +36,6 @@ export async function saveUploadedImages(files, folder = "Home/Products") {
   }
   const uniqueFiles = Array.from(uniqueMap.values());
   console.log("[lib/part] saveUploadedImages files count:", files.length, "-> unique:", uniqueFiles.length);
-=======
-  console.log("[lib/part] saveUploadedImages files count:", files.length);
->>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
   await fs.promises.mkdir(uploadsDir, { recursive: true });
 
   const uploadedUrls = [];
@@ -119,7 +114,6 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
   };
 }
 
-<<<<<<< HEAD
 /**
  * Builds a MongoDB query filter object from the parsed search/category params.
  * 
@@ -143,12 +137,6 @@ export function buildPartFilter({
   model,
   category,
   skus,
-=======
-export function buildPartFilter({
-  q,
-  brand,
-  category,
->>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
   stitchType,
   minPrice,
   maxPrice,
@@ -354,7 +342,6 @@ export function createPartPayload(values, uploadedUrls, brandData) {
   };
 }
 
-<<<<<<< HEAD
 /**
  * Generates patch updates for an existing part structure from incoming form inputs.
  * 
@@ -365,8 +352,6 @@ export function createPartPayload(values, uploadedUrls, brandData) {
  * @param {object} brandData - Resolved brand/model slug and names data.
  * @returns {Record<string, any>} Cleaned update patch document.
  */
-=======
->>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
 export function buildPartUpdateData(
   existingPart,
   formData,
@@ -380,7 +365,6 @@ export function buildPartUpdateData(
   return {
     sku: values.sku || existingPart.sku,
     name: values.name || existingPart.name,
-<<<<<<< HEAD
     description: formData.has("description") ? values.description : existingPart.description,
     diagramNumber: formData.has("diagramNumber") ? values.diagramNumber : existingPart.diagramNumber,
     id1: formData.has("id1") ? values.id1 : existingPart.id1,
@@ -392,23 +376,6 @@ export function buildPartUpdateData(
       threadType: formData.has("compatThreadType") ? values.compatThreadType : existingPart.compat.threadType,
       stitchType: formData.has("compatStitchType")
         ? (values.compatStitchType ? [values.compatStitchType] : [])
-=======
-    description: values.description || existingPart.description,
-    diagramNumber: values.diagramNumber || existingPart.diagramNumber,
-    id1: values.id1 || existingPart.id1,
-    id2: values.id2 || existingPart.id2,
-    altPartNumbers: values.altPartNumbers.length
-      ? values.altPartNumbers
-      : existingPart.altPartNumbers,
-    compat: {
-      machineModels: values.compatMachineModels.length
-        ? values.compatMachineModels
-        : existingPart.compat.machineModels,
-      needleSystem: values.compatNeedleSystem || existingPart.compat.needleSystem,
-      threadType: values.compatThreadType || existingPart.compat.threadType,
-      stitchType: values.compatStitchType
-        ? [values.compatStitchType]
->>>>>>> 38a5736b5d65e154b1f4a67a80df869b0dd69600
         : existingPart.compat.stitchType,
     },
     specs: {
