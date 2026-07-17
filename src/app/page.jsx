@@ -7,7 +7,7 @@ import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import { formatINR } from "@/src/lib/format";
 import { useCart } from "@/src/lib/cart-context";
-import axios from 'axios';
+import api from "@/src/lib/axios";
 
 function buildSaleLink(sale) {
   if (!sale || !sale.scope) return "/catalog";
@@ -52,19 +52,19 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch parts
-    axios("/api/parts")
+    api("/api/parts")
       .then((res) => res.data)
       .then((data) => setParts(data.slice(0, 8)))
       .catch((err) => console.error("Error loading home parts:", err));
 
     // Fetch brands
-    axios("/api/brands")
+    api("/api/brands")
       .then((res) => res.data)
       .then((data) => setBrands(data.filter((b) => b.isBrand).slice(0, 4)))
       .catch((err) => console.error("Error loading home brands:", err));
 
     // Fetch sales
-    axios("/api/sales")
+    api("/api/sales")
       .then((res) => res.data)
       .then((data) => setSales(data))
       .catch((err) => console.error("Error loading home sales:", err));
