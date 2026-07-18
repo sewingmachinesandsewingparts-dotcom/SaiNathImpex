@@ -263,7 +263,17 @@
     CLOUDINARY_CLOUD_NAME=your-cloud-name
     CLOUDINARY_API_KEY=your-api-key
     CLOUDINARY_API_SECRET=your-api-secret
+    GOOGLE_CLIENT_ID=your-google-client-id
+    GOOGLE_CLIENT_SECRET=your-google-client-secret
+    GOOGLE_OAUTH_REDIRECT_URL=https://localhost:3000/api/auth/callback/google
     ```
+
+    The Google OAuth redirect URI must match exactly the authorized redirect URI configured in the Google Cloud Console.
+    - Local development: `http://localhost:3000/api/auth/callback/google`
+    - Production: `https://your-domain.com/api/auth/callback/google`
+    - If you deploy to Vercel, use `https://<your-vercel-app>.vercel.app/api/auth/callback/google`.
+
+    If the Google sign-in page shows `redirect_uri_mismatch`, update the Google Cloud OAuth client to include the exact URL shown in that error.
 
     ## Scripts
 
