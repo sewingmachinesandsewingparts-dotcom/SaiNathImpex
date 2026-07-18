@@ -3,11 +3,35 @@ import connectMongo from "@/src/lib/mongo";
 import User from "@/src/models/User";
 import axios from "axios";
 
+function normalizeOrigin(value) {
+  if (!value) return "";
+
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 function getRedirectUri(request) {
   const configured =
     process.env.GOOGLE_OAUTH_REDIRECT_URL ||
-    process.env.Google_OAUTH_REDIRECT_URL;
-  if (configured) return configured;
+    process.env.Google_OAUTH_REDIRECT_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.APP_URL;
+
+  if (configured) {
+    const normalized = normalizeOrigin(configured);
+    if (/\/api\/auth\/callback\/google\/?$/i.test(configured)) {
+      return configured.replace(/\/+$/, "");
+    }
+    return `${normalized}/api/auth/callback/google`;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (vercelUrl) {
+    return `${normalizeOrigin(vercelUrl)}/api/auth/callback/google`;
+  }
 
   const requestUrl = new URL(request.url);
   const proto =
