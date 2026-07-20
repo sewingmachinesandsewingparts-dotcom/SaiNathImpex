@@ -7,7 +7,26 @@ export function normalizeOrigin(value) {
   return `https://${trimmed}`;
 }
 
+function isLocalhost(hostname) {
+  return ["localhost", "127.0.0.1", "::1"].includes(
+    (hostname || "").toLowerCase()
+  );
+}
+
+function getRequestOrigin(request) {
+  const requestUrl = new URL(request.url);
+  const proto =
+    request.headers.get("x-forwarded-proto") ||
+    requestUrl.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host") || requestUrl.host;
+
+  return `${proto}://${host}`;
+}
+
 export function getRedirectUri(request) {
+  const requestOrigin = getRequestOrigin(request);
+  const requestUrl = new URL(requestOrigin);
+
   const configured = (
     process.env.GOOGLE_OAUTH_REDIRECT_URL ||
     process.env.Google_OAUTH_REDIRECT_URL ||
@@ -18,8 +37,20 @@ export function getRedirectUri(request) {
   ).toString().trim();
 
   if (configured) {
-    if (/\/api\/auth\/callback\/google\/?$/i.test(configured)) {
-      return configured.replace(/\/+$/, "");
+    const configuredValue = configured.replace(/\/+$/, "");
+
+    if (/\/api\/auth\/callback\/google\/?$/i.test(configuredValue)) {
+      try {
+        const configuredUrl = new URL(configuredValue);
+
+        if (isLocalhost(requestUrl.hostname) || isLocalhost(configuredUrl.hostname)) {
+          return `${requestOrigin}/api/auth/callback/google`;
+        }
+
+        return configuredValue;
+      } catch {
+        return configuredValue;
+      }
     }
 
     const normalized = normalizeOrigin(configured);
@@ -33,13 +64,7 @@ export function getRedirectUri(request) {
     return `${normalizeOrigin(vercelUrl)}/api/auth/callback/google`;
   }
 
-  const requestUrl = new URL(request.url);
-  const proto =
-    request.headers.get("x-forwarded-proto") ||
-    requestUrl.protocol.replace(":", "");
-  const host = request.headers.get("x-forwarded-host") || requestUrl.host;
-
-  return `${proto}://${host}/api/auth/callback/google`;
+  return `${requestOrigin}/api/auth/callback/google`;
 }
 
 export function getOAuthConfig(request) {

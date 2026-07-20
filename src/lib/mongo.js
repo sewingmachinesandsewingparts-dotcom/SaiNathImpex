@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/stitch-parts-finder";
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local or your environment.",
-  );
-}
+const DEFAULT_MONGODB_URI = "mongodb://127.0.0.1:27017/stitch-parts-finder";
+const MONGODB_URI = (process.env.MONGODB_URI || DEFAULT_MONGODB_URI).trim();
 
 const globalWithMongoose = globalThis;
 const cached = globalWithMongoose.mongoose || { conn: null, promise: null };
@@ -23,13 +18,26 @@ async function connectMongo() {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         dbName: "stitch-parts-finder",
-        bufferCommands: false, // Prevents queries from buffering and hanging if connection drops
+        serverSelectionTimeoutMS: 5000,
+        bufferCommands: false,
       })
-      .then((mongooseInstance) => mongooseInstance);
+      .then((mongooseInstance) => mongooseInstance)
+      .catch((error) => {
+        console.error("MongoDB connection failed:", error.message);
+        cached.promise = null;
+        throw error;
+      });
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error) {
+    cached.conn = null;
+    cached.promise = null;
+    throw error;
+  }
 }
 
+export { MONGODB_URI };
 export default connectMongo;
