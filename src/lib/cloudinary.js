@@ -20,7 +20,7 @@ export const uploadToCloudinary = async (filePath, folder, originalName) => {
   return result;
 };
 
-const getCloudinaryPublicIdFromUrl = (imageUrl) => {
+export const extractCloudinaryPublicIdFromUrl = (imageUrl) => {
   try {
     const url = new URL(imageUrl);
     const segments = url.pathname.split("/").filter(Boolean);
@@ -35,20 +35,61 @@ const getCloudinaryPublicIdFromUrl = (imageUrl) => {
     }
 
     const publicIdWithExt = publicIdSegments.join("/");
-    return publicIdWithExt.replace(/\.[^.]+$/, "");
+    return decodeURIComponent(publicIdWithExt.replace(/\.[^.]+$/, ""));
   } catch {
     return null;
   }
 };
 
-export const deleteCloudinaryImages = async (imageUrls) => {
+export const extractCloudinaryFolderFromPublicId = (publicId) => {
+  if (!publicId) return null;
+  const parts = publicId.split("/").filter(Boolean);
+  if (parts.length <= 1) return null;
+  const folderParts = parts.slice(0, -1);
+  return folderParts.join("/");
+};
+
+export const buildCloudinaryDeleteFolders = (imageUrls, fallbackFolders = []) => {
+  const folders = new Set(
+    (fallbackFolders || [])
+      .map((folder) => folder?.toString().trim())
+      .filter(Boolean),
+  );
+
+  for (const url of imageUrls || []) {
+    const publicId = extractCloudinaryPublicIdFromUrl(url);
+    const folder = extractCloudinaryFolderFromPublicId(publicId);
+    if (folder) {
+      folders.add(folder);
+    }
+  }
+
+  return Array.from(folders);
+};
+
+export const deleteCloudinaryImages = async (imageUrls, fallbackFolders = []) => {
   if (!Array.isArray(imageUrls) || imageUrls.length === 0) return;
+
+  const foldersToDelete = buildCloudinaryDeleteFolders(imageUrls, fallbackFolders);
 
   await Promise.all(
     imageUrls.map(async (url) => {
-      const publicId = getCloudinaryPublicIdFromUrl(url);
+      const publicId = extractCloudinaryPublicIdFromUrl(url);
       if (!publicId) return;
-      await cloudinary.uploader.destroy(publicId, { resource_type: "image" }).catch(() => null);
+
+      await cloudinary.uploader.destroy(publicId, { resource_type: "image" }).catch((error) => {
+        console.warn("Cloudinary image delete failed for", publicId, error?.message || error);
+      });
     }),
   );
+
+  for (const folder of foldersToDelete) {
+    await cloudinary.api.delete_resources_by_prefix(folder).catch((error) => {
+      console.warn("Cloudinary folder delete failed for", folder, error?.message || error);
+    });
+
+    await cloudinary.api.delete_folder(folder).catch((error) => {
+      console.warn("Cloudinary folder removal failed for", folder, error?.message || error);
+    });
+  }
 };

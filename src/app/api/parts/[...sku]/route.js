@@ -258,7 +258,9 @@ export async function DELETE(request, { params }) {
     }
 
     if (part.images?.length) {
-      await deleteCloudinaryImages(part.images);
+      await deleteCloudinaryImages(part.images, [
+        `Home/Products/${safeString(part.name || part.sku)}`,
+      ]);
     }
 
     return jsonResponse({ message: "Part deleted successfully", sku });
