@@ -497,3 +497,35 @@ to SKU of this -->HEN-EG-HX35000-R53
   },
   "__v": 0
 }
+3
+
+
+complete the session work for not to login the same account automatically from tab1 to tab2 using the sessionStorage with security
+
+si-eg-35000
+eg-35000
+
+thinking just like we open a tab1 login into tab1 and in cookie we set the {tab:1} this makes the tab1 unique and then we open the tab2 there we not login so the {tab:1} is still in the cookie and with opening the tab2 make the addon of {tab:2} in the cookie and after adding this now  the user login in tab1 on first account and in tab-2 with the second account and everytime the request gets th tab number(1,2,3) always comes up with the cookie or request
+
+not to use the Dynamic data that we are about to fill like in product creation series,product model make sure every operation works perfectly without any error from input to output
+
+and also make this static data into the dynamic data that comes from the backend and cloudinary not from any url of pixel.com <div class="relative aspect-square hairline bg-card overflow-hidden"><img alt="Sewing machine hook assembly" class="h-full w-full object-cover" src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&amp;fit=crop&amp;w=900&amp;q=70"><div class="absolute top-4 left-4 right-4 flex items-center justify-between"><span class="font-mono text-[10px] tracking-[0.2em] uppercase bg-bone px-2 py-1">Featured · SKU HX-48300</span><span class="font-mono text-[10px] tracking-[0.2em] uppercase bg-ink text-bone px-2 py-1">In stock × 42</span></div><div class="absolute bottom-0 left-0 right-0 bg-bone/95 p-4 flex items-center justify-between"><div><div class="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Rotary Hook Assembly</div><div class="font-display text-3xl">₹2,450</div></div><a class="h-10 px-4 bg-ink text-bone font-mono text-[11px] uppercase tracking-[0.15em] inline-flex items-center gap-1.5 cursor-pointer" href="/part/SKU-JUKI-HX48300">View <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right h-3.5 w-3.5" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a></div></div>
+
+
+working of the live chat support from both frontend and backend
+
+and if login person is an admin and only show the admin an admin dashboard the role can only be the one admin or superadmin or user and they only use the fileds connected to their role and admin and superadmin only access the admin dashboard not the user pages 
+
+the sale that added as the brand was not fully function on product with that brands 
+
+and the manual button to increase the amount of all product like
+
+if Doller Price increased By --> 15RS 
+then (productsPrice+(2% of the product price))
+
+(fix the signup for the website
+how to fix --> when signup we create a randow string or token and we send that token to an email that user write
+and user fill that string and signup completed
+)
+
+create a secrtion  in the support of the admin/support/live chat for live chat with the boxes of all customers that are now for the live chat with status like online or offline and seen 
