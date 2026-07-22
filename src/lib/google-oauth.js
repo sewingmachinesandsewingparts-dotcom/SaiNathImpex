@@ -1,8 +1,8 @@
-const appUrl = process.env.NEXT_PUBLIC_APP_URL?.toString().trim();
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL)?.toString().trim();
 
 export function getRedirectUri() {
   if (!appUrl) {
-    throw new Error("Missing NEXT_PUBLIC_APP_URL.");
+    throw new Error("Missing NEXT_PUBLIC_APP_URL or NEXT_PUBLIC_API_URL.");
   }
   return `${appUrl.replace(/\/+$/, "")}/api/auth/callback/google`;
 }
