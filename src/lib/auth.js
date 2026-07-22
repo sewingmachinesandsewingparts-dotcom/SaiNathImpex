@@ -1,22 +1,7 @@
 import { randomBytes, pbkdf2Sync, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "mw_user_id";
-const COOKIE_PREFIX = "mw_user_id_";
 const COOKIE_OPTIONS = "Path=/; HttpOnly; SameSite=Lax; Max-Age=604800";
-
-function safeTabId(tabId) {
-  return String(tabId || "").replace(/[^a-zA-Z0-9-_]/g, "");
-}
-
-export function getTabIdFromRequest(request) {
-  const headerTabId = request.headers.get("x-mw-tab-id");
-  const safeHeader = safeTabId(headerTabId);
-  if (safeHeader) {
-    return safeHeader;
-  }
-  const cookies = getCookies(request.headers.get("cookie"));
-  return safeTabId(cookies["mw_tab_id"] || "");
-}
 
 /**
  * Hashes a plaintext password using crypto pbkdf2Sync.
@@ -72,13 +57,6 @@ export function getCookies(cookieHeader) {
 export function getAuthCookie(request) {
   const cookieHeader = request.headers.get("cookie");
   const cookies = getCookies(cookieHeader);
-  const tabId = getTabIdFromRequest(request);
-
-  if (tabId) {
-    const tabCookieName = `${COOKIE_PREFIX}${tabId}`;
-    return cookies[tabCookieName] || "";
-  }
-
   return cookies[COOKIE_NAME] || "";
 }
 
@@ -86,12 +64,10 @@ export function getAuthCookie(request) {
  * Formats user ID value as standard HttpOnly session Set-Cookie header value.
  * 
  * @param {string} userId - User ID string.
- * @param {string} [tabId] - Optional per-tab session id.
  * @returns {string} Set-Cookie header config string.
  */
-export function setAuthCookie(userId, tabId) {
-  const name = tabId ? `${COOKIE_PREFIX}${safeTabId(tabId)}` : COOKIE_NAME;
-  return `${name}=${encodeURIComponent(userId)}; ${COOKIE_OPTIONS}`;
+export function setAuthCookie(userId) {
+  return `${COOKIE_NAME}=${encodeURIComponent(userId)}; ${COOKIE_OPTIONS}`;
 }
 
 /**
@@ -99,7 +75,6 @@ export function setAuthCookie(userId, tabId) {
  * 
  * @returns {string} Set-Cookie header config string.
  */
-export function clearAuthCookie(tabId) {
-  const name = tabId ? `${COOKIE_PREFIX}${safeTabId(tabId)}` : COOKIE_NAME;
-  return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export function clearAuthCookie() {
+  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }

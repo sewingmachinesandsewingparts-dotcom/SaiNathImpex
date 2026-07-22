@@ -3,15 +3,6 @@ import connectMongo from "@/src/lib/mongo";
 import User from "@/src/models/User";
 import axios from "axios";
 import { getOAuthConfigWithSecret } from "@/src/lib/google-oauth";
-import { setAuthCookie } from "@/src/lib/auth";
-
-function parseOAuthState(state = "") {
-  const [tabId, ...rest] = state.split(":");
-  if (rest.length === 0) {
-    return { tabId: "", csrfToken: state };
-  }
-  return { tabId, csrfToken: rest.join(":") };
-}
 
 async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
   const params = new URLSearchParams({
@@ -87,8 +78,7 @@ function setSessionCookie(response, userId) {
 
 export async function GET(request) {
   try {
-    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const { searchParams } = new URL(base);
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
     const error = searchParams.get("error");
     const returnedState = searchParams.get("state");
@@ -116,7 +106,7 @@ export async function GET(request) {
       throw new Error("Invalid OAuth state. Please try signing in again.");
     }
 
-    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret();
+    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret(request);
     const tokenData = await exchangeCode({
       code,
       clientId,
@@ -131,9 +121,10 @@ export async function GET(request) {
     }
 
     const tokenInfo = await verifyIdToken(tokenData.id_token, clientId);
-    const email = (tokenInfo.email || "").toLowerCase();
-    const profilePicture = tokenInfo.picture || "";
-    const displayName = tokenInfo.name || email.split("@")[0] || "Google User";
+    const profile = await getProfile(tokenData.access_token);
+
+    const profilePicture = profile.picture || profile.image?.url || "";
+    const email = (tokenInfo.email || profile.email)?.toLowerCase();
 
     if (!email) {
       throw new Error("Google did not return a verified email.");
@@ -176,17 +167,14 @@ export async function GET(request) {
     const redirectPath = ["admin", "superadmin"].includes(user.role)
       ? "/admin"
       : "/profile";
-    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const response = NextResponse.redirect(new URL(redirectPath, base));
+    const response = NextResponse.redirect(new URL(redirectPath, request.url));
+    // Clear the CSRF state cookie after use
     response.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
-    const { tabId } = parseOAuthState(returnedState || "");
-    response.cookies.set(setAuthCookie(user.id, tabId));
-    return response;
+    return setSessionCookie(response, user.id);
   } catch (error) {
-    const message = error?.message || "Unable to sign in with Google.";
-    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const message = error.message || "Unable to sign in with Google.";
     return NextResponse.redirect(
-      new URL(`/auth?error=${encodeURIComponent(message)}`, base)
+      new URL(`/auth?error=${encodeURIComponent(message)}`, request.url)
     );
   }
 }

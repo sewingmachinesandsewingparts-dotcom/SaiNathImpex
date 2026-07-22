@@ -55,8 +55,7 @@ export function notFound(message = "Not found") {
  * @returns {string}
  */
 export function parseSearchParam(request, name) {
-  const url = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return new URL(url).searchParams.get(name) || "";
+  return new URL(request.url).searchParams.get(name) || "";
 }
 
 /**
