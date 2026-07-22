@@ -3,6 +3,15 @@ import connectMongo from "@/src/lib/mongo";
 import User from "@/src/models/User";
 import axios from "axios";
 import { getOAuthConfigWithSecret } from "@/src/lib/google-oauth";
+import { setAuthCookie } from "@/src/lib/auth";
+
+function parseOAuthState(state = "") {
+  const [tabId, ...rest] = state.split(":");
+  if (rest.length === 0) {
+    return { tabId: "", csrfToken: state };
+  }
+  return { tabId, csrfToken: rest.join(":") };
+}
 
 async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
   const params = new URLSearchParams({
@@ -121,10 +130,9 @@ export async function GET(request) {
     }
 
     const tokenInfo = await verifyIdToken(tokenData.id_token, clientId);
-    const profile = await getProfile(tokenData.access_token);
-
-    const profilePicture = profile.picture || profile.image?.url || "";
-    const email = (tokenInfo.email || profile.email)?.toLowerCase();
+    const email = (tokenInfo.email || "").toLowerCase();
+    const profilePicture = tokenInfo.picture || "";
+    const displayName = tokenInfo.name || email.split("@")[0] || "Google User";
 
     if (!email) {
       throw new Error("Google did not return a verified email.");
@@ -168,9 +176,10 @@ export async function GET(request) {
       ? "/admin"
       : "/profile";
     const response = NextResponse.redirect(new URL(redirectPath, request.url));
-    // Clear the CSRF state cookie after use
     response.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
-    return setSessionCookie(response, user.id);
+    const { tabId } = parseOAuthState(returnedState || "");
+    response.cookies.set(setAuthCookie(user.id, tabId));
+    return response;
   } catch (error) {
     const message = error.message || "Unable to sign in with Google.";
     return NextResponse.redirect(

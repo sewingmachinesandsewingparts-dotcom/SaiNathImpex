@@ -6,6 +6,7 @@ import {
   setAuthCookie,
   clearAuthCookie,
   getAuthCookie,
+  getTabIdFromRequest,
 } from "@/src/lib/auth";
 import { jsonResponse, badRequest, errorResponse } from "@/src/lib/api";
 
@@ -114,6 +115,7 @@ export async function POST(request) {
         role: "user",
         permissions: [],
       }).save();
+      const tabId = getTabIdFromRequest(request);
 
       return new Response(
         JSON.stringify({
@@ -131,7 +133,7 @@ export async function POST(request) {
           status: 201,
           headers: {
             "Content-Type": "application/json",
-            "Set-Cookie": setAuthCookie(user.id),
+            "Set-Cookie": setAuthCookie(user.id, tabId),
           },
         },
       );
@@ -158,6 +160,7 @@ export async function POST(request) {
       return badRequest("This account has been blocked by an administrator.");
     }
 
+    const tabId = getTabIdFromRequest(request);
     return new Response(
       JSON.stringify({
         user: {
@@ -174,7 +177,7 @@ export async function POST(request) {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Set-Cookie": setAuthCookie(existingUser.id),
+          "Set-Cookie": setAuthCookie(existingUser.id, tabId),
         },
       },
     );
@@ -186,12 +189,13 @@ export async function POST(request) {
 /**
  * DELETE: Clears the session auth cookie, logging the user out.
  */
-export async function DELETE() {
+export async function DELETE(request) {
+  const tabId = getTabIdFromRequest(request);
   return new Response(JSON.stringify({ user: null }), {
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      "Set-Cookie": clearAuthCookie(),
+      "Set-Cookie": clearAuthCookie(tabId),
     },
   });
 }

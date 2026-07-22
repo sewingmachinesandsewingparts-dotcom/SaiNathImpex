@@ -1,0 +1,30 @@
+[33mbcfd67b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Restore project to state from commit 37acc16
+[33m74e2b5c[m simplified OAuth error fxed 1
+[33md2482d2[m OAuth Simplified
+[33m37acc16[m support system improved
+[33m962ac2b[m fix the OAuth error and Deleting the images make the folders also delete on github
+[33m44d1797[m Google Aut fixed 1
+[33mbbfd69e[m googke auth fixed 1
+[33m78eb558[m http to https
+[33m842fa6f[m http to https
+[33m11948da[m http to https
+[33m96b8117[m http to https
+[33mebdb527[m http to https
+[33m88457f5[m commit -1
+[33m646a377[m localhost:3000 is fixed from the auth
+[33mda0d8ed[m localhost:3000 is fixed from the auth
+[33m35070ed[m change the dynamic starting like localhost:5000
+[33m1bdea59[m mongodb uri added
+[33m313f440[m mongodb uri added
+[33m9b366dd[m development third error
+[33m9417b20[m development second error
+[33m9accb61[m series/compatibility updated
+[33mf50b246[m series/compatibility updated
+[33m8bff331[m series/compatibility updated
+[33m38a5736[m the sky category  is update for three digit
+[33m34e9d81[m fetch change to axios and also the unnecessary files deleted
+[33m898244c[m the category is now working in the category section of the frontend/backend
+[33mc6f2e2e[m delete the category section from the product creation
+[33m0c9fda5[m SKU fuctionality added
+[33m8673bc7[m unnecessary static data deleted static
+[33m2d98997[m Project first Commit

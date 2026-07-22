@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { getOAuthConfig } from "@/src/lib/google-oauth";
 
+function buildOAuthState(tabId) {
+  const csrfToken = randomBytes(16).toString("hex");
+  return tabId ? `${tabId}:${csrfToken}` : csrfToken;
+}
+
 export async function GET(request) {
   try {
-    const { clientId, redirectUri } = getOAuthConfig(request);
+    const { clientId, redirectUri } = getOAuthConfig();
     const loginHint = request.nextUrl?.searchParams?.get("login_hint") || "";
+    const tabId = request.nextUrl?.searchParams?.get("tab_id") || "";
 
-    // Generate a CSRF state token to prevent cross-site request forgery
-    const state = randomBytes(16).toString("hex");
-
+    const state = buildOAuthState(tabId);
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -27,12 +31,11 @@ export async function GET(request) {
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     const response = NextResponse.redirect(googleAuthUrl);
 
-    // Store state in a short-lived cookie for verification in the callback
     response.cookies.set("oauth_state", state, {
       httpOnly: true,
       path: "/",
       sameSite: "lax",
-      maxAge: 60 * 10, // 10 minutes
+      maxAge: 60 * 10,
     });
 
     return response;

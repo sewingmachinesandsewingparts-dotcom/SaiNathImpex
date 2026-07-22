@@ -1,6 +1,7 @@
 "use client";
 
 import api from "@/src/utils/api";
+import { getTabId } from "@/src/utils/tab-id";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
@@ -36,7 +37,11 @@ function AuthInner() {
 
     if (mode === "in" && /@(gmail\.com|googlemail\.com)$/i.test(email.trim())) {
       const normalizedEmail = email.trim().toLowerCase();
-      const redirectUrl = `/api/auth/google${normalizedEmail ? `?login_hint=${encodeURIComponent(normalizedEmail)}` : ""}`;
+      const tabId = getTabId();
+      const params = new URLSearchParams();
+      if (normalizedEmail) params.set("login_hint", normalizedEmail);
+      if (tabId) params.set("tab_id", tabId);
+      const redirectUrl = `/api/auth/google${params.toString() ? `?${params.toString()}` : ""}`;
       window.location.assign(redirectUrl);
       return;
     }
@@ -116,7 +121,11 @@ function AuthInner() {
             <button
               onClick={() => {
                 const loginHint = email.trim();
-                window.location.href = `/api/auth/google${loginHint ? `?login_hint=${encodeURIComponent(loginHint)}` : ""}`;
+                const tabId = getTabId();
+                const params = new URLSearchParams();
+                if (loginHint) params.set("login_hint", loginHint);
+                if (tabId) params.set("tab_id", tabId);
+                window.location.href = `/api/auth/google${params.toString() ? `?${params.toString()}` : ""}`;
               }}
               className="mt-8 w-full h-12 hairline hover:bg-secondary flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-widest cursor-pointer"
             >
