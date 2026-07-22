@@ -8,10 +8,11 @@ import {
   getAuthCookie,
 } from "@/src/lib/auth";
 import { jsonResponse, badRequest, errorResponse } from "@/src/lib/api";
-import { serializeUser, createUser } from "@/src/lib/user";
 
 function validateSignup(email, password, name) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!normalizedEmail) {
@@ -37,19 +38,6 @@ function validateSignup(email, password, name) {
   return null;
 }
 
-function loginResponse(user, status = 200) {
-  return new Response(
-    JSON.stringify({ user: serializeUser(user) }),
-    {
-      status,
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": setAuthCookie(user.id),
-      },
-    },
-  );
-}
-
 /**
  * GET: Checks the active session using the encrypted session cookie.
  * Returns the currently logged in user profile, or null.
@@ -63,10 +51,24 @@ export async function GET(request) {
     const user = await User.findOne({ id: userId });
     if (!user || user.status === "blocked") return jsonResponse({ user: null });
 
-    return jsonResponse({ user: serializeUser(user) });
+    return jsonResponse({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image || "",
+        role: user.role,
+        status: user.status,
+        permissions: user.permissions || [],
+      },
+    });
   } catch (error) {
     return errorResponse(error.message);
   }
+}
+
+function isGoogleAccountEmail(email) {
+  return /@(gmail\.com|googlemail\.com)$/i.test(String(email || ""));
 }
 
 /**
@@ -98,18 +100,49 @@ export async function POST(request) {
         return badRequest("This email is already registered.");
       }
 
+      const count = await User.countDocuments();
+      const userId = `USR${String(count + 1).padStart(3, "0")}`;
       const hashedPassword = hashPassword(password);
-      const user = await createUser({
+
+      const user = await new User({
+        id: userId,
         name,
         email: normalizedEmail,
         password: hashedPassword,
         image: "",
-      });
+        status: "active",
+        role: "user",
+        permissions: [],
+      }).save();
 
-      return loginResponse(user, 201);
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image || "",
+            role: user.role,
+            status: user.status,
+            permissions: user.permissions || [],
+          },
+        }),
+        {
+          status: 201,
+          headers: {
+            "Content-Type": "application/json",
+            "Set-Cookie": setAuthCookie(user.id),
+          },
+        },
+      );
     }
 
     if (!existingUser) {
+      if (isGoogleAccountEmail(normalizedEmail)) {
+        return badRequest(
+          "This looks like a Google account. Please use Continue with Google to sign in.",
+        );
+      }
       return badRequest("Invalid email or password.");
     }
     if (!existingUser.password) {
@@ -125,7 +158,26 @@ export async function POST(request) {
       return badRequest("This account has been blocked by an administrator.");
     }
 
-    return loginResponse(existingUser);
+    return new Response(
+      JSON.stringify({
+        user: {
+          id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          image: existingUser.image || "",
+          role: existingUser.role,
+          status: existingUser.status,
+          permissions: existingUser.permissions || [],
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": setAuthCookie(existingUser.id),
+        },
+      },
+    );
   } catch (error) {
     return errorResponse(error.message, 400);
   }
