@@ -40,9 +40,10 @@ export async function GET(request) {
 
     return response;
   } catch (error) {
-    const message = error.message || "Google auth is unavailable.";
+    const message = error?.message || "Google auth is unavailable.";
+    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     return NextResponse.redirect(
-      new URL(`/auth?error=${encodeURIComponent(message)}`, request.url)
+      new URL(`/auth?error=${encodeURIComponent(message)}`, base)
     );
   }
 }

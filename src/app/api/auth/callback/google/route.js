@@ -87,7 +87,8 @@ function setSessionCookie(response, userId) {
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const { searchParams } = new URL(base);
     const code = searchParams.get("code");
     const error = searchParams.get("error");
     const returnedState = searchParams.get("state");
@@ -115,7 +116,7 @@ export async function GET(request) {
       throw new Error("Invalid OAuth state. Please try signing in again.");
     }
 
-    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret(request);
+    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret();
     const tokenData = await exchangeCode({
       code,
       clientId,
@@ -175,15 +176,17 @@ export async function GET(request) {
     const redirectPath = ["admin", "superadmin"].includes(user.role)
       ? "/admin"
       : "/profile";
-    const response = NextResponse.redirect(new URL(redirectPath, request.url));
+    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const response = NextResponse.redirect(new URL(redirectPath, base));
     response.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
     const { tabId } = parseOAuthState(returnedState || "");
     response.cookies.set(setAuthCookie(user.id, tabId));
     return response;
   } catch (error) {
-    const message = error.message || "Unable to sign in with Google.";
+    const message = error?.message || "Unable to sign in with Google.";
+    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     return NextResponse.redirect(
-      new URL(`/auth?error=${encodeURIComponent(message)}`, request.url)
+      new URL(`/auth?error=${encodeURIComponent(message)}`, base)
     );
   }
 }
