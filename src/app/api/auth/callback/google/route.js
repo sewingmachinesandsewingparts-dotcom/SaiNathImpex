@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectMongo from "@/src/lib/mongo";
 import User from "@/src/models/User";
-import axios from "axios";
-import { getOAuthConfigWithSecret } from "@/src/lib/google-oauth";
+import { createUser } from "@/src/lib/user";
+import { buildPostLoginRedirectPath, getOAuthConfigWithSecret } from "@/src/lib/google-oauth";
 
 async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
   const params = new URLSearchParams({
@@ -13,67 +13,38 @@ async function exchangeCode({ code, clientId, clientSecret, redirectUri }) {
     grant_type: "authorization_code",
   });
 
-  try {
-    const res = await axios.post("https://oauth2.googleapis.com/token", params.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
-    return res.data;
-  } catch (err) {
-    const data = err.response?.data || {};
-    throw new Error(
-      data.error_description ||
-        data.error ||
-        "Unable to exchange auth code with Google."
-    );
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error_description || data.error || "Unable to exchange auth code with Google.");
   }
+
+  return data;
 }
 
 async function verifyIdToken(idToken, clientId) {
-  // Use id_token verification (access_token tokeninfo is deprecated)
-  try {
-    const res = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
-    const data = res.data;
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  const data = await res.json();
 
-    if (data.aud && data.aud !== clientId) {
-      throw new Error("The Google authentication token does not belong to this app.");
-    }
-
-    const isVerified = data.email_verified === true || data.email_verified === "true";
-    if (!isVerified) {
-      throw new Error("The Google account email is not verified.");
-    }
-
-    return data;
-  } catch (err) {
-    if (err.message.includes("Google authentication token") || err.message.includes("account email")) {
-      throw err;
-    }
-    throw new Error("The Google authentication token is invalid.");
+  if (!res.ok) {
+    throw new Error(data.error_description || data.error || "The Google authentication token is invalid.");
   }
-}
 
-async function getProfile(accessToken) {
-  try {
-    const res = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error("Unable to fetch Google profile.");
+  if (data.aud && data.aud !== clientId) {
+    throw new Error("The Google authentication token does not belong to this app.");
   }
-}
 
-function setSessionCookie(response, userId) {
-  response.cookies.set({
-    name: "mw_user_id",
-    value: userId,
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  const isVerified = data.email_verified === true || data.email_verified === "true";
+  if (!isVerified) {
+    throw new Error("The Google account email is not verified.");
+  }
 
-  return response;
+  return data;
 }
 
 export async function GET(request) {
@@ -84,17 +55,13 @@ export async function GET(request) {
     const returnedState = searchParams.get("state");
 
     if (error) {
-      throw new Error(
-        searchParams.get("error_description") ||
-          "Google sign-in was cancelled."
-      );
+      throw new Error(searchParams.get("error_description") || "Google sign-in was cancelled.");
     }
 
     if (!code) {
       throw new Error("Missing authorization code.");
     }
 
-    // Verify CSRF state to prevent cross-site request forgery
     const cookieHeader = request.headers.get("cookie") || "";
     const storedState = cookieHeader
       .split(";")
@@ -106,7 +73,7 @@ export async function GET(request) {
       throw new Error("Invalid OAuth state. Please try signing in again.");
     }
 
-    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret(request);
+    const { clientId, clientSecret, redirectUri } = getOAuthConfigWithSecret();
     const tokenData = await exchangeCode({
       code,
       clientId,
@@ -115,45 +82,31 @@ export async function GET(request) {
     });
 
     if (!tokenData.id_token) {
-      throw new Error(
-        "Google did not return an ID token. Ensure 'openid' scope is requested."
-      );
+      throw new Error("Google did not return an ID token. Ensure 'openid' scope is requested.");
     }
 
     const tokenInfo = await verifyIdToken(tokenData.id_token, clientId);
-    const profile = await getProfile(tokenData.access_token);
-
-    const profilePicture = profile.picture || profile.image?.url || "";
-    const email = (tokenInfo.email || profile.email)?.toLowerCase();
-
+    const email = String(tokenInfo.email || "").toLowerCase();
     if (!email) {
       throw new Error("Google did not return a verified email.");
     }
 
+    const displayName = tokenInfo.name || email.split("@")[0] || "Google User";
+    const profilePicture = tokenInfo.picture || "";
+
     await connectMongo();
 
     let user = await User.findOne({ email });
-
     if (!user) {
-      const count = await User.countDocuments();
-      const userId = `USR${String(count + 1).padStart(3, "0")}`;
-      user = await new User({
-        id: userId,
-        name:
-          profile.name ||
-          profile.given_name ||
-          email.split("@")[0] ||
-          "Google User",
+      user = await createUser({
+        name: displayName,
         email,
         password: "",
         image: profilePicture,
-        status: "active",
-        role: "user",
-        permissions: [],
-      }).save();
+      });
     } else {
-      if (!user.name && profile.name) {
-        user.name = profile.name;
+      if (!user.name && tokenInfo.name) {
+        user.name = tokenInfo.name;
       }
       if (profilePicture && user.image !== profilePicture) {
         user.image = profilePicture;
@@ -164,18 +117,22 @@ export async function GET(request) {
       await user.save();
     }
 
-    const redirectPath = ["admin", "superadmin"].includes(user.role)
-      ? "/admin"
-      : "/profile";
+    const redirectPath = buildPostLoginRedirectPath(user.role);
     const response = NextResponse.redirect(new URL(redirectPath, request.url));
-    // Clear the CSRF state cookie after use
     response.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
-    return setSessionCookie(response, user.id);
+    response.cookies.set({
+      name: "mw_user_id",
+      value: user.id,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
   } catch (error) {
     const message = error.message || "Unable to sign in with Google.";
-    return NextResponse.redirect(
-      new URL(`/auth?error=${encodeURIComponent(message)}`, request.url)
-    );
+    return NextResponse.redirect(new URL(`/auth?error=${encodeURIComponent(message)}`, request.url));
   }
 }
 
