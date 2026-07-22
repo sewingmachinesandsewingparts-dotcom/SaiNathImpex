@@ -181,9 +181,10 @@ export async function GET(request) {
     response.cookies.set(setAuthCookie(user.id, tabId));
     return response;
   } catch (error) {
-    const message = error.message || "Unable to sign in with Google.";
+    const message = error?.message || "Unable to sign in with Google.";
+    const base = request?.url || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     return NextResponse.redirect(
-      new URL(`/auth?error=${encodeURIComponent(message)}`, request.url)
+      new URL(`/auth?error=${encodeURIComponent(message)}`, base)
     );
   }
 }
