@@ -67,16 +67,27 @@ export default function NewProductPage() {
         const data = res.data || [];
         setPartsIndex(data);
         const map = {};
+        const latestUpdateForSeries = {};
+        
         for (const p of data) {
           if (p.linkedSeries && p.linkedSeries.series) {
             const key = p.linkedSeries.series.trim();
             if (!key) continue;
-            // Only add if not already present, or merge uniquely if needed
-            // To ensure we get exactly what was explicitly saved in linkedSeries.products:
-            if (!map[key]) {
-              map[key] = (p.linkedSeries.products || []).map(sku => ({ sku, code: sku, name: sku }));
+            
+            const pTime = new Date(p.updatedAt || p.createdAt || 0).getTime();
+            const currentLatest = latestUpdateForSeries[key]?.time || -1;
+            
+            if (pTime > currentLatest) {
+              latestUpdateForSeries[key] = {
+                time: pTime,
+                products: p.linkedSeries.products || []
+              };
             }
           }
+        }
+        
+        for (const key in latestUpdateForSeries) {
+          map[key] = latestUpdateForSeries[key].products.map(sku => ({ sku, code: sku, name: sku }));
         }
         setSeriesMap(map);
       } catch (e) {
@@ -662,7 +673,7 @@ export default function NewProductPage() {
                         </div>
                         <div className="border-t border-dashed pt-3 mt-2">
                           <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground mb-2">Edit Series Info</div>
-                          <div className="grid sm:grid-cols-2 gap-3 mb-2">
+                          <div className="grid sm:grid-cols-2 gap-3 mb-2" key={selectedSeries}>
                             <label className="block">
                               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series</span>
                               <input
@@ -699,9 +710,8 @@ export default function NewProductPage() {
                               setSeriesMap(nextMap);
                               setSelectedSeries(newName);
                               setSelectedSeriesProducts(prev => {
-                                const currentCheckedInThisSeries = prev.filter(sku => (seriesMap[selectedSeries] || []).some(old => old.sku === sku));
                                 const notInThisSeries = prev.filter(sku => !(seriesMap[selectedSeries] || []).some(old => old.sku === sku));
-                                return [...notInThisSeries, ...newProds.filter(p => currentCheckedInThisSeries.includes(p))];
+                                return [...notInThisSeries, ...newProds];
                               });
                             }}
                             className="w-full h-8 bg-secondary hover:bg-copper hover:text-bone text-xs font-mono uppercase tracking-widest transition-colors"
