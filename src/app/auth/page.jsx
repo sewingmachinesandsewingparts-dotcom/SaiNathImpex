@@ -1,6 +1,7 @@
 "use client";
 
 import api from "@/src/utils/api";
+import { ensureTabSession } from "@/src/lib/tab-session";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
@@ -64,9 +65,10 @@ function AuthInner() {
     setIsSubmitting(true);
 
     try {
+      const tabSession = ensureTabSession();
       const response = await api.post(
         "/api/auth",
-        { mode, name, email, password },
+        { mode, name, email, password, tabId: tabSession.tabId },
         { headers: { "Content-Type": "application/json" } },
       );
 

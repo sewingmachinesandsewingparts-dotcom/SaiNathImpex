@@ -8,6 +8,15 @@ import {
   getAuthCookie,
 } from "@/src/lib/auth";
 import { jsonResponse, badRequest, errorResponse } from "@/src/lib/api";
+import {
+  applyLoginRateLimit,
+  createSessionRecord,
+  createAuthResponsePayload,
+  signJwt,
+  serializeUser,
+  createJsonResponse,
+} from "@/src/lib/session-auth";
+import { buildDeviceFingerprint } from "@/src/lib/tab-session";
 
 function validateSignup(email, password, name) {
   const normalizedEmail = String(email || "")
@@ -80,7 +89,9 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { mode, name, email, password } = body;
+    const { mode, name, email, password, tabId } = body;
+
+    applyLoginRateLimit(request);
 
     if (!email || !password) {
       return badRequest("Email and password are required.");
@@ -115,25 +126,19 @@ export async function POST(request) {
         permissions: [],
       }).save();
 
-      return new Response(
-        JSON.stringify({
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image || "",
-            role: user.role,
-            status: user.status,
-            permissions: user.permissions || [],
-          },
-        }),
-        {
-          status: 201,
-          headers: {
-            "Content-Type": "application/json",
-            "Set-Cookie": setAuthCookie(user.id),
-          },
-        },
+      const accessToken = signJwt({ sub: user.id, sessionId: `signup-${user.id}`, type: "access" }, 15 * 60);
+      const refreshToken = signJwt({ sub: user.id, sessionId: `signup-${user.id}`, type: "refresh" }, 30 * 24 * 60 * 60);
+      const sessionRecord = await createSessionRecord({
+        user,
+        tabId: tabId || `signup-${user.id}`,
+        deviceFingerprint: buildDeviceFingerprint(),
+        accessToken,
+        refreshToken,
+      });
+
+      return createJsonResponse(
+        createAuthResponsePayload(user, sessionRecord, accessToken, refreshToken),
+        201,
       );
     }
 
@@ -158,28 +163,22 @@ export async function POST(request) {
       return badRequest("This account has been blocked by an administrator.");
     }
 
-    return new Response(
-      JSON.stringify({
-        user: {
-          id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          image: existingUser.image || "",
-          role: existingUser.role,
-          status: existingUser.status,
-          permissions: existingUser.permissions || [],
-        },
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Set-Cookie": setAuthCookie(existingUser.id),
-        },
-      },
+    const accessToken = signJwt({ sub: existingUser.id, sessionId: `login-${existingUser.id}`, type: "access" }, 15 * 60);
+    const refreshToken = signJwt({ sub: existingUser.id, sessionId: `login-${existingUser.id}`, type: "refresh" }, 30 * 24 * 60 * 60);
+    const sessionRecord = await createSessionRecord({
+      user: existingUser,
+      tabId: tabId || `login-${existingUser.id}`,
+      deviceFingerprint: buildDeviceFingerprint(),
+      accessToken,
+      refreshToken,
+    });
+
+    return createJsonResponse(
+      createAuthResponsePayload(existingUser, sessionRecord, accessToken, refreshToken),
+      200,
     );
   } catch (error) {
-    return errorResponse(error.message, 400);
+    return errorResponse(error.message || "Unable to authenticate.", 400);
   }
 }
 

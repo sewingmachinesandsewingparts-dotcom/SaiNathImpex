@@ -69,6 +69,7 @@ export default function EditProductPage() {
   const [partCode, setPartCode] = useState("");
   const [compatibleList, setCompatibleList] = useState([]);
   const [compatBrand, setCompatBrand] = useState("");
+  const [compatBrandCreateValue, setCompatBrandCreateValue] = useState("");
   const [compatModelsInput, setCompatModelsInput] = useState("");
   const [partsIndex, setPartsIndex] = useState([]);
   const [seriesMap, setSeriesMap] = useState({});
@@ -151,10 +152,37 @@ export default function EditProductPage() {
       : product.id1?.trim() || extractPartCodeFromSku(product.sku, initialSeriesCode, false);
     setPartCode(initialPartCode);
     // Populate compatibleList from product
-    const initialCompatList = (product.compatibleBrands || []).map((cb) => ({
-      brand: cb.brand || "",
-      machines: (cb.machines || []).map((m) => (typeof m === "string" ? m : m.model || "")).filter(Boolean),
-    }));
+    let initialCompatList = [];
+    if (product.compatibleBrands && product.compatibleBrands.length > 0) {
+      initialCompatList = product.compatibleBrands.map((cb) => ({
+        brand: cb.brand || "",
+        machines: (cb.machines || []).map((m) => (typeof m === "string" ? m : m.model || "")).filter(Boolean),
+      }));
+    } else if (product.compat?.machineModels && product.compat.machineModels.length > 0) {
+      const map = new Map();
+      for (const item of product.compat.machineModels) {
+        if (!item) continue;
+        const matchedBrand = (brandRecords || []).find(
+          (b) => b.name && item.toLowerCase().startsWith(b.name.toLowerCase())
+        );
+        if (matchedBrand) {
+          const bName = matchedBrand.name;
+          const modelOnly = item.slice(bName.length).trim();
+          const set = map.get(bName) || new Set();
+          set.add(modelOnly || item);
+          map.set(bName, set);
+        } else {
+          const bName = "Other";
+          const set = map.get(bName) || new Set();
+          set.add(item);
+          map.set(bName, set);
+        }
+      }
+      initialCompatList = Array.from(map.entries()).map(([brand, set]) => ({
+        brand,
+        machines: Array.from(set),
+      }));
+    }
     setCompatibleList(initialCompatList);
 
     // Populate linkedSeries from product
@@ -574,7 +602,12 @@ export default function EditProductPage() {
                   <select
                     className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
                     value={compatBrand}
-                    onChange={(e) => setCompatBrand(e.target.value)}
+                    onChange={(e) => {
+                      setCompatBrand(e.target.value);
+                      if (e.target.value !== "+ Create new") {
+                        setCompatBrandCreateValue("");
+                      }
+                    }}
                   >
                     <option value="">Select brand</option>
                     {brandRecords.map((b) => (
@@ -582,7 +615,17 @@ export default function EditProductPage() {
                         {b.name}
                       </option>
                     ))}
+                    <option value="+ Create new">+ Create new</option>
                   </select>
+                  {compatBrand === "+ Create new" && (
+                    <input
+                      type="text"
+                      value={compatBrandCreateValue}
+                      onChange={(e) => setCompatBrandCreateValue(e.target.value)}
+                      placeholder="Enter new brand name"
+                      className="border hairline bg-background outline-none focus:border-copper mt-2 py-2 px-3 text-sm w-full"
+                    />
+                  )}
                 </label>
 
                 <label className="block">
@@ -599,7 +642,9 @@ export default function EditProductPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (!compatBrand) return;
+                      const targetBrand = compatBrand === "+ Create new" ? compatBrandCreateValue.trim() : compatBrand.trim();
+                      if (!targetBrand) return;
+
                       const models = compatModelsInput
                         .split(",")
                         .map((s) => s.trim())
@@ -615,7 +660,7 @@ export default function EditProductPage() {
                           for (const m of item.machines || []) set.add(m);
                           map.set(key, set);
                         }
-                        const incomingKey = compatBrand.trim();
+                        const incomingKey = targetBrand;
                         const incomingSet = map.get(incomingKey) || new Set();
                         for (const m of models) incomingSet.add(m);
                         map.set(incomingKey, incomingSet);
@@ -627,7 +672,15 @@ export default function EditProductPage() {
                         return merged;
                       });
 
+                      if (!brandRecords.some((b) => b.name?.toLowerCase() === targetBrand.toLowerCase())) {
+                        setBrandRecords((prev) => [
+                          ...prev,
+                          { slug: targetBrand.toLowerCase().replace(/\s+/g, "-"), name: targetBrand, isBrand: true, models: [] },
+                        ]);
+                      }
+
                       setCompatBrand("");
+                      setCompatBrandCreateValue("");
                       setCompatModelsInput("");
                     }}
                     className="w-full h-10 bg-ink text-bone"
@@ -775,12 +828,6 @@ export default function EditProductPage() {
               </div>
             </div>
 
-            <Inp
-              label="Compatible machines (comma-sep)"
-              name="compatMachineModels"
-              placeholder="JUKI DDL-8700, JUKI DDL-9000"
-              defaultValue={product.compat?.machineModels?.join(", ")}
-            />
 
             <div className="grid sm:grid-cols-3 gap-3">
               <Inp

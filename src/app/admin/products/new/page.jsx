@@ -31,14 +31,14 @@ export default function NewProductPage() {
   const [brandRecords, setBrandRecords] = useState(BRANDS);
   const [compatibleList, setCompatibleList] = useState([]);
   const [compatBrand, setCompatBrand] = useState("");
+  const [compatBrandCreateValue, setCompatBrandCreateValue] = useState("");
   const [compatModelsInput, setCompatModelsInput] = useState("");
   const [partsIndex, setPartsIndex] = useState([]);
   const [seriesMap, setSeriesMap] = useState({});
   const [selectedSeries, setSelectedSeries] = useState("");
   const [selectedSeriesProducts, setSelectedSeriesProducts] = useState([]);
-  const [newSeriesCode, setNewSeriesCode] = useState("1");
-  const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("1,2,3,4,5,6");
-  const [createdDefaultSeries, setCreatedDefaultSeries] = useState(false);
+  const [newSeriesCode, setNewSeriesCode] = useState("");
+  const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [brandCreateValue, setBrandCreateValue] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -81,19 +81,6 @@ export default function NewProductPage() {
 
     loadParts();
   }, []);
-
-  useEffect(() => {
-    if (createdDefaultSeries) return;
-    const code = "1";
-    if (!seriesMap || seriesMap[code]) { setCreatedDefaultSeries(true); return; }
-    const products = ["1","2","3","4","5","6"];
-    const next = { ...seriesMap };
-    next[code] = products.map(p => ({ sku: p, code: p, name: p }));
-    setSeriesMap(next);
-    setSelectedSeries(code);
-    setSelectedSeriesProducts(products.slice());
-    setCreatedDefaultSeries(true);
-  }, [seriesMap, createdDefaultSeries]);
 
   const handleImageChange = (event, index) => {
     const files = Array.from(event.target.files || []);
@@ -489,10 +476,33 @@ export default function NewProductPage() {
               <div className="grid sm:grid-cols-3 gap-3">
                 <label className="block">
                   <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Brand</span>
-                  <select className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper" value={compatBrand} onChange={(e)=>setCompatBrand(e.target.value)}>
+                  <select
+                    className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
+                    value={compatBrand}
+                    onChange={(e) => {
+                      setCompatBrand(e.target.value);
+                      if (e.target.value !== "+ Create new") {
+                        setCompatBrandCreateValue("");
+                      }
+                    }}
+                  >
                     <option value="">Select brand</option>
-                    {brandRecords.map(b=> <option key={b.slug||b.name} value={b.name}>{b.name}</option>)}
+                    {brandRecords.map((b) => (
+                      <option key={b.slug || b.name} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                    <option value="+ Create new">+ Create new</option>
                   </select>
+                  {compatBrand === "+ Create new" && (
+                    <input
+                      type="text"
+                      value={compatBrandCreateValue}
+                      onChange={(e) => setCompatBrandCreateValue(e.target.value)}
+                      placeholder="Enter new brand name"
+                      className="border hairline bg-background outline-none focus:border-copper mt-2 py-2 px-3 text-sm w-full"
+                    />
+                  )}
                 </label>
 
                 <label className="block">
@@ -504,9 +514,11 @@ export default function NewProductPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (!compatBrand) return;
+                      const targetBrand = compatBrand === "+ Create new" ? compatBrandCreateValue.trim() : compatBrand.trim();
+                      if (!targetBrand) return;
+
                       const models = compatModelsInput
-                        .split(',')
+                        .split(",")
                         .map((s) => s.trim())
                         .filter(Boolean);
                       if (models.length === 0) return;
@@ -514,13 +526,13 @@ export default function NewProductPage() {
                       setCompatibleList((prev) => {
                         const map = new Map();
                         for (const item of prev) {
-                          const key = (item.brand || '').trim();
+                          const key = (item.brand || "").trim();
                           if (!key) continue;
                           const set = map.get(key) || new Set();
                           for (const m of item.machines || []) set.add(m);
                           map.set(key, set);
                         }
-                        const incomingKey = compatBrand.trim();
+                        const incomingKey = targetBrand;
                         const incomingSet = map.get(incomingKey) || new Set();
                         for (const m of models) incomingSet.add(m);
                         map.set(incomingKey, incomingSet);
@@ -532,8 +544,16 @@ export default function NewProductPage() {
                         return merged;
                       });
 
-                      setCompatBrand('');
-                      setCompatModelsInput('');
+                      if (!brandRecords.some((b) => b.name?.toLowerCase() === targetBrand.toLowerCase())) {
+                        setBrandRecords((prev) => [
+                          ...prev,
+                          { slug: targetBrand.toLowerCase().replace(/\s+/g, "-"), name: targetBrand, isBrand: true, models: [] },
+                        ]);
+                      }
+
+                      setCompatBrand("");
+                      setCompatBrandCreateValue("");
+                      setCompatModelsInput("");
                     }}
                     className="w-full h-10 bg-ink text-bone"
                   >
@@ -544,11 +564,31 @@ export default function NewProductPage() {
 
               {compatibleList.length > 0 && (
                 <div className="mt-2">
-                  <div className="font-mono text-[10px] uppercase">Added compatibility</div>
-                  <ul className="list-disc pl-4">
+                  <div className="font-mono text-[10px] uppercase flex justify-between items-center">
+                    <span>Added compatibility</span>
+                    <button
+                      type="button"
+                      onClick={() => setCompatibleList([])}
+                      className="text-red-500 text-[9px] font-mono hover:underline uppercase"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <ul className="list-disc pl-4 space-y-1 mt-1">
                     {compatibleList.map((c, i) => (
-                      <li key={i}>
-                        {c.brand}: {Array.from(new Set(c.machines)).join(', ')}
+                      <li key={i} className="text-xs flex justify-between items-center max-w-md">
+                        <span>
+                          {c.brand}: {Array.from(new Set(c.machines)).join(", ")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCompatibleList((prev) => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="text-red-500 hover:text-red-700 ml-2 font-mono text-[10px]"
+                        >
+                          ✕
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -632,12 +672,6 @@ export default function NewProductPage() {
                 </div>
               </div>
             </div>
-
-            <Inp
-              label="Compatible machines (comma-sep)"
-              name="compatMachineModels"
-              placeholder="JUKI DDL-8700, JUKI DDL-9000"
-            />
 
             <div className="grid sm:grid-cols-3 gap-3">
               <Inp name="compatNeedleSystem" label="Needle system" placeholder="DBx1" />

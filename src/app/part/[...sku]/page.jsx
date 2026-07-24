@@ -32,6 +32,68 @@ function normalizeSku(value) {
   return skuValue;
 }
 
+function getGroupedCompatibility(part) {
+  if (!part) return [];
+
+  // 1. Prefer structured compatibleBrands if available
+  if (Array.isArray(part.compatibleBrands) && part.compatibleBrands.length > 0) {
+    const list = [];
+    for (const cb of part.compatibleBrands) {
+      const brand = (cb.brand || "").trim();
+      const models = (cb.machines || [])
+        .map((m) => {
+          if (typeof m === "string") return m.trim();
+          if (m && typeof m.model === "string") return m.model.trim();
+          return "";
+        })
+        .filter(Boolean);
+
+      if (models.length > 0) {
+        list.push({ brand: brand || "Compatible", models });
+      }
+    }
+    if (list.length > 0) return list;
+  }
+
+  // 2. Fallback: Group flat machineModels array by brand
+  if (Array.isArray(part.compat?.machineModels) && part.compat.machineModels.length > 0) {
+    const map = new Map();
+    for (const rawItem of part.compat.machineModels) {
+      if (!rawItem) continue;
+      const item = rawItem.trim();
+
+      let brand = "";
+      let model = item;
+
+      if (item.includes(" ")) {
+        const spaceIdx = item.indexOf(" ");
+        brand = item.slice(0, spaceIdx).trim();
+        model = item.slice(spaceIdx + 1).trim();
+      } else if (item.includes("-")) {
+        const hyphenIdx = item.indexOf("-");
+        const prefix = item.slice(0, hyphenIdx).trim();
+        if (prefix && prefix.length >= 2 && !/^\d+$/.test(prefix)) {
+          brand = prefix;
+          model = item;
+        }
+      }
+
+      if (!brand) brand = "Compatible";
+
+      const set = map.get(brand) || new Set();
+      set.add(model);
+      map.set(brand, set);
+    }
+
+    return Array.from(map.entries()).map(([brand, set]) => ({
+      brand,
+      models: Array.from(set),
+    }));
+  }
+
+  return [];
+}
+
 export default function PartPage({ params }) {
   const resolvedParams = use(params);
   const sku = normalizeSku(resolvedParams.sku);
@@ -406,20 +468,35 @@ export default function PartPage({ params }) {
             )}
             {tab === "compat" && part.compat && (
               <div className="space-y-4">
-                {part.compat.machineModels && (
-                  <div>
-                    <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-                      Compatible machines
+                {(() => {
+                  const groupedCompat = getGroupedCompatibility(part);
+                  if (groupedCompat.length === 0) return null;
+                  return (
+                    <div>
+                      <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
+                        Compatible machines
+                      </div>
+                      <div className="space-y-3">
+                        {groupedCompat.map((group, idx) => (
+                          <div key={group.brand || idx} className="flex flex-wrap items-center gap-2">
+                            {group.brand && group.brand !== "Compatible" && (
+                              <span className="font-mono text-xs font-semibold text-copper uppercase tracking-wider min-w-[70px]">
+                                {group.brand}:
+                              </span>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {group.models.map((m) => (
+                                <span key={m} className="hairline px-3 py-1.5 text-xs bg-background">
+                                  {m}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {part.compat.machineModels.map((m) => (
-                        <span key={m} className="hairline px-3 py-1.5 text-xs">
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {part.compat.stitchType && (
                   <div>
                     <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -449,38 +526,75 @@ export default function PartPage({ params }) {
 
             {tab === "series" && (
               <div className="space-y-4">
-                {part.series && part.series.length > 0 ? (
-                  part.series.map((s) => (
-                    <div key={s.code || s.id} className="hairline p-4 rounded-3xl">
-                      <div className="font-mono text-sm uppercase tracking-widest">{s.code} {s.name ? `· ${s.name}` : null}</div>
-                      {s.description && <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>}
-                      {s.products && s.products.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {s.products.map((p) => (
-                            <Link key={p.sku || p.code} href={`/part/${encodeURIComponent(p.sku || p.code)}`} className="hairline px-3 py-1.5 text-xs">
-                              {p.code || p.sku || p.name}
+                {(() => {
+                  const DUMMY_SKUS = new Set(["1", "2", "3", "4", "5", "6"]);
+
+                  if (part.series && part.series.length > 0) {
+                    return part.series.map((s) => {
+                      const validProds = (s.products || []).filter(
+                        (p) => p && !DUMMY_SKUS.has((p.sku || p.code || p.name || "").toString().trim())
+                      );
+                      return (
+                        <div key={s.code || s.id} className="hairline p-4 rounded-3xl">
+                          <div className="font-mono text-sm uppercase tracking-widest">
+                            {s.code} {s.name ? `· ${s.name}` : null}
+                          </div>
+                          {s.description && <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>}
+                          {validProds.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {validProds.map((p) => (
+                                <Link
+                                  key={p.sku || p.code}
+                                  href={`/part/${encodeURIComponent(p.sku || p.code)}`}
+                                  className="hairline px-3 py-1.5 text-xs"
+                                >
+                                  {p.code || p.sku || p.name}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  }
+
+                  if (part.linkedSeries && part.linkedSeries.series) {
+                    const validSkus = (part.linkedSeries.products || []).filter(
+                      (sku) => sku && !DUMMY_SKUS.has(sku.toString().trim())
+                    );
+                    if (validSkus.length === 0) {
+                      return (
+                        <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                          No series linked for this part.
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="hairline p-4 rounded-3xl">
+                        <div className="font-mono text-sm uppercase tracking-widest">
+                          Series {part.linkedSeries.series}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {validSkus.map((sku) => (
+                            <Link
+                              key={sku}
+                              href={`/part/${encodeURIComponent(sku)}`}
+                              className="hairline px-3 py-1.5 text-xs"
+                            >
+                              {sku}
                             </Link>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  ))
-                ) : part.linkedSeries && part.linkedSeries.series ? (
-                  <div className="hairline p-4 rounded-3xl">
-                    <div className="font-mono text-sm uppercase tracking-widest">Series {part.linkedSeries.series}</div>
-                    {part.linkedSeries.products && part.linkedSeries.products.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {part.linkedSeries.products.map((sku) => (
-                          <Link key={sku} href={`/part/${encodeURIComponent(sku)}`} className="hairline px-3 py-1.5 text-xs">
-                            {sku}
-                          </Link>
-                        ))}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">No series linked for this part.</div>
-                )}
+                    );
+                  }
+
+                  return (
+                    <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                      No series linked for this part.
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

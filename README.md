@@ -186,9 +186,11 @@
 
     ### Auth session behavior
 
-    - authentication uses a secure cookie named `mw_user_id`
-    - the frontend does not store auth credentials in `localStorage`
-    - session state is retrieved from the backend via `/api/auth`
+    - authentication now uses a tab-scoped session model backed by `sessionStorage`
+    - each browser tab gets its own unique `tabId` via `crypto.randomUUID()`
+    - every API request automatically sends `Authorization` and `X-Tab-ID` headers
+    - the backend stores per-tab session records and rejects mismatched tab usage or reused tokens
+    - logout is isolated per tab, while a full-device logout can be supported through the session records
 
     ### Resulting workflow
 

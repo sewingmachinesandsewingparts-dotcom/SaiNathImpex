@@ -279,12 +279,39 @@ export function parsePartFormData(formData) {
     linkedSeries: (() => {
       try {
         const raw = formData.get("linkedSeries");
-        return raw ? JSON.parse(Array.isArray(raw) ? raw[0] : raw) : { series: "", products: [] };
+        const parsed = raw ? JSON.parse(Array.isArray(raw) ? raw[0] : raw) : { series: "", products: [] };
+        const dummySet = new Set(["1", "2", "3", "4", "5", "6"]);
+        const cleanProds = (parsed.products || []).filter((p) => p && !dummySet.has(p.toString().trim()));
+        return {
+          series: (parsed.series || "").trim(),
+          products: cleanProds,
+        };
       } catch (e) {
         return { series: "", products: [] };
       }
     })(),
   };
+}
+
+/**
+ * Helper to derive flat machine model strings from structured compatibleBrands and explicit machine models.
+ * E.g., brand "JUKI" + model "DDL-8700" => "JUKI DDL-8700"
+ */
+export function deriveMachineModels(compatibleBrands = [], explicitModels = []) {
+  const modelsSet = new Set(explicitModels || []);
+  for (const cb of compatibleBrands || []) {
+    const brand = (cb.brand || "").trim();
+    for (const m of cb.machines || []) {
+      const model = typeof m === "string" ? m.trim() : (m.model || "").trim();
+      if (!model) continue;
+      if (brand && !model.toLowerCase().startsWith(brand.toLowerCase())) {
+        modelsSet.add(`${brand} ${model}`);
+      } else {
+        modelsSet.add(model);
+      }
+    }
+  }
+  return Array.from(modelsSet);
 }
 
 /**
@@ -296,6 +323,8 @@ export function parsePartFormData(formData) {
  * @returns {Record<string, any>} Payload matching mongoose schema.
  */
 export function createPartPayload(values, uploadedUrls, brandData) {
+  const machineModels = deriveMachineModels(values.compatibleBrands, values.compatMachineModels);
+
   return {
     sku: values.sku,
     id1: values.id1,
@@ -305,7 +334,7 @@ export function createPartPayload(values, uploadedUrls, brandData) {
     diagramNumber: values.diagramNumber,
     altPartNumbers: values.altPartNumbers,
     compat: {
-      machineModels: values.compatMachineModels,
+      machineModels,
       needleSystem: values.compatNeedleSystem,
       threadType: values.compatThreadType,
       stitchType: values.compatStitchType ? [values.compatStitchType] : [],
@@ -362,6 +391,18 @@ export function buildPartUpdateData(
   const values = parsePartFormData(formData);
   const imageList = existingPart.images?.filter((img) => !deletedImageUrls.includes(img)) || [];
 
+  const updatedCompatibleBrands = formData.has("compatibleBrands")
+    ? values.compatibleBrands
+    : existingPart.compatibleBrands;
+  const updatedExplicitModels = formData.has("compatMachineModels")
+    ? values.compatMachineModels
+    : [];
+
+  const hasCompatChange = formData.has("compatibleBrands") || formData.has("compatMachineModels");
+  const machineModels = hasCompatChange
+    ? deriveMachineModels(updatedCompatibleBrands, updatedExplicitModels)
+    : (existingPart.compat?.machineModels || []);
+
   return {
     sku: values.sku || existingPart.sku,
     name: values.name || existingPart.name,
@@ -371,12 +412,12 @@ export function buildPartUpdateData(
     id2: formData.has("id2") ? values.id2 : existingPart.id2,
     altPartNumbers: formData.has("altPartNumbers") ? values.altPartNumbers : existingPart.altPartNumbers,
     compat: {
-      machineModels: formData.has("compatMachineModels") ? values.compatMachineModels : existingPart.compat.machineModels,
-      needleSystem: formData.has("compatNeedleSystem") ? values.compatNeedleSystem : existingPart.compat.needleSystem,
-      threadType: formData.has("compatThreadType") ? values.compatThreadType : existingPart.compat.threadType,
+      machineModels,
+      needleSystem: formData.has("compatNeedleSystem") ? values.compatNeedleSystem : existingPart.compat?.needleSystem,
+      threadType: formData.has("compatThreadType") ? values.compatThreadType : existingPart.compat?.threadType,
       stitchType: formData.has("compatStitchType")
         ? (values.compatStitchType ? [values.compatStitchType] : [])
-        : existingPart.compat.stitchType,
+        : existingPart.compat?.stitchType,
     },
     specs: {
       material: formData.has("specsMaterial") ? values.specsMaterial : existingPart.specs.material,
@@ -406,6 +447,7 @@ export function buildPartUpdateData(
     status: formData.has("status") ? values.status : existingPart.status,
     keywords: formData.has("keywords") ? values.keywords : existingPart.keywords,
     aliases: formData.has("aliases") ? values.aliases : existingPart.aliases,
+    compatibleBrands: updatedCompatibleBrands,
     linkedSeries: formData.has("linkedSeries") ? (values.linkedSeries || { series: "", products: [] }) : (existingPart.linkedSeries || { series: "", products: [] }),
     images: [...imageList, ...uploadedUrls],
   };
@@ -419,11 +461,14 @@ export function buildPartUpdateData(
  * @param {object|null} newLinkedSeries - The new linkedSeries object of the product.
  */
 export async function syncPartSeries(targetSku, oldLinkedSeries, newLinkedSeries) {
+  const dummySet = new Set(["1", "2", "3", "4", "5", "6"]);
+  const cleanSkus = (arr) => (arr || []).filter((s) => s && !dummySet.has(s.toString().trim()));
+
   const oldSeriesCode = oldLinkedSeries?.series || "";
-  const oldSkus = oldLinkedSeries?.products || [];
+  const oldSkus = cleanSkus(oldLinkedSeries?.products);
 
   const newSeriesCode = newLinkedSeries?.series || "";
-  const newSkus = newLinkedSeries?.products || [];
+  const newSkus = cleanSkus(newLinkedSeries?.products);
 
   // 1. If a new series is defined, sync it across all products in the new list
   if (newSeriesCode && newSkus.length > 0) {
