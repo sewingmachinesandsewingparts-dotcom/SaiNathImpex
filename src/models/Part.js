@@ -3,6 +3,14 @@ import mongoose from "mongoose";
 const partSchema = new mongoose.Schema(
   {
     sku: { type: String, required: true, unique: true },
+
+    // ======================================================
+    // MCG / OEM IDENTIFIERS
+    // ======================================================
+    MCG: { type: String, index: true },   // Machine Category Group  e.g. "8000"
+    OEM: { type: String, index: true },   // OEM part number         e.g. "205773"
+
+    // Legacy generic identifiers (kept for backward compatibility)
     id1: { type: String },
     id2: { type: String },
     name: { type: String, required: true },
@@ -24,6 +32,7 @@ const partSchema = new mongoose.Schema(
     specs: {
       material: { type: String },
       weight: { type: String },
+      dimensions: { type: String },   // e.g. "4MM Needle Distance"
     },
     maintenance: {
       lubrication: { type: String },
@@ -192,7 +201,12 @@ const partSchema = new mongoose.Schema(
     // ======================================================
     // SEO
     // ======================================================
-    seo: { slug: { type: String }, title: { type: String }, description: { type: String }, keywords: [{ type: String }] },
+    seo: {
+      slug: { type: String },
+      title: { type: String },
+      description: { type: String },
+      keywords: [{ type: String }],
+    },
   },
   {
     timestamps: true,
@@ -203,6 +217,10 @@ partSchema.index({ brandSlug: 1 });
 partSchema.index({ modelSlug: 1 });
 partSchema.index({ categoryRootSlug: 1 });
 partSchema.index({ brandName: 1 });
+partSchema.index({ MCG: 1 });
+partSchema.index({ OEM: 1 });
+partSchema.index({ brandSlug: 1, MCG: 1 });        // compound – brand + MCG browse
+partSchema.index({ brandSlug: 1, MCG: 1, OEM: 1 }); // compound – brand + MCG + OEM lookup
 partSchema.index({ id1: 1 });
 partSchema.index({ id2: 1 });
 

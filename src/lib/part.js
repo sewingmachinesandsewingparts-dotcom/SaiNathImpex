@@ -137,6 +137,8 @@ export function buildPartFilter({
   model,
   category,
   skus,
+  mcg,
+  oem,
   stitchType,
   minPrice,
   maxPrice,
@@ -151,6 +153,8 @@ export function buildPartFilter({
     filter.$or = [
       { name: searchRegex },
       { sku: searchRegex },
+      { MCG: searchRegex },
+      { OEM: searchRegex },
       { id1: searchRegex },
       { id2: searchRegex },
       { diagramNumber: searchRegex },
@@ -168,6 +172,16 @@ export function buildPartFilter({
         { "compat.stitchType": searchRegex },
       );
     }
+  }
+
+  // Filter by MCG (Machine Category Group) e.g. "80005"
+  if (mcg) {
+    filter.MCG = mcg;
+  }
+
+  // Filter by OEM part number e.g. "205773"
+  if (oem) {
+    filter.OEM = oem;
   }
 
   if (brand) {
@@ -237,6 +251,9 @@ export function parsePartFormData(formData) {
     name: get("name"),
     description: get("description"),
     diagramNumber: get("diagramNumber"),
+    // MCG / OEM  (new explicit fields; fall back to legacy id1/id2 if absent)
+    MCG: get("MCG") || get("id1"),
+    OEM: get("OEM") || get("id2"),
     id1: get("id1"),
     id2: get("id2"),
     altPartNumbers: parseList(get("altPartNumbers")),
@@ -328,6 +345,8 @@ export function createPartPayload(values, uploadedUrls, brandData) {
 
   return {
     sku: values.sku,
+    MCG: values.MCG || values.id1 || "",
+    OEM: values.OEM || values.id2 || "",
     id1: values.id1,
     id2: values.id2,
     name: values.name,
@@ -409,6 +428,8 @@ export function buildPartUpdateData(
     name: values.name || existingPart.name,
     description: formData.has("description") ? values.description : existingPart.description,
     diagramNumber: formData.has("diagramNumber") ? values.diagramNumber : existingPart.diagramNumber,
+    MCG: (formData.has("MCG") || formData.has("id1")) ? (values.MCG || values.id1 || existingPart.MCG || "") : (existingPart.MCG || ""),
+    OEM: (formData.has("OEM") || formData.has("id2")) ? (values.OEM || values.id2 || existingPart.OEM || "") : (existingPart.OEM || ""),
     id1: formData.has("id1") ? values.id1 : existingPart.id1,
     id2: formData.has("id2") ? values.id2 : existingPart.id2,
     altPartNumbers: formData.has("altPartNumbers") ? values.altPartNumbers : existingPart.altPartNumbers,

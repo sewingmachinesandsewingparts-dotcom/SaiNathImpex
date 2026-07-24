@@ -15,6 +15,8 @@ export async function GET(request) {
       model: searchParams.get("model"),       // filters by modelSlug (brand model pages)
       category: searchParams.get("category"), // filters by categoryRootSlug (category pages)
       skus: searchParams.get("skus"),         // filters by specific SKUs (used in cart/wishlist)
+      mcg: searchParams.get("mcg"),           // filters by MCG (Machine Category Group)
+      oem: searchParams.get("oem"),           // filters by OEM part number
       stitchType: searchParams.get("stitchType"),
       minPrice: searchParams.get("minPrice"),
       maxPrice: searchParams.get("maxPrice"),

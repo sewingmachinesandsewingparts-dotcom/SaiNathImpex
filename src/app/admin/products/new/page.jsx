@@ -199,8 +199,11 @@ export default function NewProductPage() {
 
       form.set("name", generatedName);
       form.set("sku", generatedSku);
+      // Set both legacy id fields AND the new explicit MCG/OEM fields
       form.set("id1", seriesCode);
+      form.set("MCG", seriesCode);
       form.set("id2", iscCode || "");
+      form.set("OEM", iscCode || "");
 
       // Set linkedSeries using the resolved seriesCode as the key
       const resolvedSeriesProducts = [...new Set(selectedSeriesProducts || [])];
@@ -464,8 +467,8 @@ export default function NewProductPage() {
                 mono
                 required
               />
-              <Inp label="Series code" name="seriesCode" placeholder="1.1.1" mono required />
-              <Inp label="ISC code" name="iscCode" placeholder="747D" mono />
+              <Inp label="Series code (MCG)" name="seriesCode" placeholder="80005" mono required />
+              <Inp label="OEM Number" name="iscCode" placeholder="205773" mono />
               <Inp label="Diagram #" name="diagramNumber" placeholder="D-112" mono />
               <Inp
                 label="Alt part #s (comma-sep)"

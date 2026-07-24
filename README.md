@@ -531,3 +531,113 @@ and user fill that string and signup completed
 )
 
 create a secrtion  in the support of the admin/support/live chat for live chat with the boxes of all customers that are now for the live chat with status like online or offline and seen 
+
+
+
+now i want the structure like this 
+
+Brand/MCG/OEM
+PEGASUS/80000/202403
+
+
+{
+  "_id": {
+    "$oid": "6a633b257f1598a3321f3daa"
+  },
+  "sku": "PEG-NP-PG80005-205773",
+  "MCG": "8000",
+  "OEM": "205773",
+  "name": "PEGASUS Needle Plate (205773) for L52-01 Overlock - 4MM",
+  "description": "Industrial sewing machine heavy-duty needle plate configured for 4mm wide-gauge seaming loops. Hardened alloy matrix structure resists impact wear and material deformation under tension.",
+  "price": 315,
+  "stock": 18,
+  "stockAlert": 4,
+  "hasMotor": false,
+  "diagramNumber": "L52-GAUGE-P01",
+  "altPartNumbers": [
+    "205773",
+    "80005-205773"
+  ],
+  "images": [
+    "https://cloudinary.com"
+  ],
+  "compat": {
+    "machineModels": [
+      "L52-01",
+      "M752-01",
+      "L52-Series"
+    ],
+    "needleSystem": "DCx1",
+    "threadType": "Core-Spun Polyester or Spun Thread",
+    "stitchType": [
+      "Overlock"
+    ]
+  },
+  "specs": {
+    "material": "Hardened Tool Steel with Matte Chrome Finish",
+    "weight": "42g",
+    "dimensions": "4MM Needle Distance"
+  },
+  "maintenance": {
+    "replacementInterval_hours": 3000
+  },
+  "brandSlug": "pegasus",
+  "brandName": "PEGASUS",
+  "modelSlug": "l5201",
+  "modelName": "L52-01 Industrial Overlock",
+  "categoryRoot": "Needle Plate",
+  "categoryRootSlug": "needle-plate",
+  "linkedSeries": {
+    "series": "80005",
+    "products": []
+  },
+  "rating": 0,
+  "reviews": 0,
+  "taxonomy": {
+    "department": "Machine Parts",
+    "category": "Sewing Machine Parts",
+    "subCategory": "Needle Plates",
+    "productType": "Standard Overlock Components",
+    "family": "L52 Gauge Parts"
+  },
+  "manufacturer": "PEGASUS",
+  "manufacturerCountry": "Japan",
+  "status": "Active",
+  "keywords": [
+    "pegasus 205773",
+    "l52-01 throat plate",
+    "80005 parts",
+    "4mm overlock plate"
+  ],
+  "aliases": [
+    "205773",
+    "L52 Needle Plate 4mm"
+  ],
+  "compatibleBrands": [
+    "PEGASUS"
+  ],
+  "seo": {
+    "keywords": [
+      "Pegasus 205773",
+      "L52-01 Needle Plate",
+      "80005 Series",
+      "4mm Needle Gauge Plate"
+    ]
+  },
+  "reviewEntries": [],
+  "crossReferences": [],
+  "specificationGroups": [],
+  "series": [
+    "80005"
+  ],
+  "documents": [],
+  "gallery": [],
+  "createdAt": {
+    "$date": "2026-07-24T16:22:00.000Z"
+  },
+  "updatedAt": {
+    "$date": "2026-07-24T16:42:00.000Z"
+  },
+  "__v": 0,
+  "compareAt": null
+}
