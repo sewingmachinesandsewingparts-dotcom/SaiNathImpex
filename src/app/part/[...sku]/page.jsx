@@ -527,71 +527,77 @@ export default function PartPage({ params }) {
             {tab === "series" && (
               <div className="space-y-4">
                 {(() => {
-                  const DUMMY_SKUS = new Set(["1", "2", "3", "4", "5", "6"]);
+                  const hasSeries = part.series && part.series.length > 0;
+                  const hasLinkedSeries = part.linkedSeries && part.linkedSeries.series;
 
-                  if (part.series && part.series.length > 0) {
-                    return part.series.map((s) => {
-                      const validProds = (s.products || []).filter(
-                        (p) => p && !DUMMY_SKUS.has((p.sku || p.code || p.name || "").toString().trim())
-                      );
-                      return (
-                        <div key={s.code || s.id} className="hairline p-4 rounded-3xl">
-                          <div className="font-mono text-sm uppercase tracking-widest">
-                            {s.code} {s.name ? `· ${s.name}` : null}
-                          </div>
-                          {s.description && <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>}
-                          {validProds.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {validProds.map((p) => (
-                                <Link
-                                  key={p.sku || p.code}
-                                  href={`/part/${encodeURIComponent(p.sku || p.code)}`}
-                                  className="hairline px-3 py-1.5 text-xs"
-                                >
-                                  {p.code || p.sku || p.name}
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    });
-                  }
-
-                  if (part.linkedSeries && part.linkedSeries.series) {
-                    const validSkus = (part.linkedSeries.products || []).filter(
-                      (sku) => sku && !DUMMY_SKUS.has(sku.toString().trim())
-                    );
-                    if (validSkus.length === 0) {
-                      return (
-                        <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                          No series linked for this part.
-                        </div>
-                      );
-                    }
+                  if (!hasSeries && !hasLinkedSeries) {
                     return (
-                      <div className="hairline p-4 rounded-3xl">
-                        <div className="font-mono text-sm uppercase tracking-widest">
-                          Series {part.linkedSeries.series}
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {validSkus.map((sku) => (
-                            <Link
-                              key={sku}
-                              href={`/part/${encodeURIComponent(sku)}`}
-                              className="hairline px-3 py-1.5 text-xs"
-                            >
-                              {sku}
-                            </Link>
-                          ))}
-                        </div>
+                      <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                        No series linked for this part.
                       </div>
                     );
                   }
 
                   return (
-                    <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                      No series linked for this part.
+                    <div className="space-y-4">
+                      {hasSeries &&
+                        part.series.map((s) => {
+                          const prods = (s.products || [])
+                            .map((p) => (typeof p === "string" ? p : p.sku || p.code || p.name))
+                            .filter(Boolean);
+                          return (
+                            <div key={s.code || s.id} className="hairline p-4 rounded-3xl bg-card space-y-3">
+                              <div className="font-mono text-sm uppercase tracking-widest text-copper font-semibold">
+                                Series {s.code} {s.name ? `· ${s.name}` : null}
+                              </div>
+                              {s.description && <p className="text-sm text-muted-foreground">{s.description}</p>}
+                              {prods.length > 0 && (
+                                <div>
+                                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                                    Products in Series
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {prods.map((code) => (
+                                      <Link
+                                        key={code}
+                                        href={`/part/${encodeURIComponent(code)}`}
+                                        className="hairline px-3 py-1.5 text-xs bg-background hover:border-copper transition-colors"
+                                      >
+                                        {code}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {hasLinkedSeries && (
+                        <div className="hairline p-4 rounded-3xl bg-card space-y-3">
+                          <div className="font-mono text-sm uppercase tracking-widest text-copper font-semibold">
+                            Series {part.linkedSeries.series}
+                          </div>
+                          {part.linkedSeries.products && part.linkedSeries.products.length > 0 && (
+                            <div>
+                              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                                Products in Series
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {part.linkedSeries.products.map((sku) => (
+                                  <Link
+                                    key={sku}
+                                    href={`/part/${encodeURIComponent(sku)}`}
+                                    className="hairline px-3 py-1.5 text-xs bg-background hover:border-copper transition-colors"
+                                  >
+                                    {sku}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

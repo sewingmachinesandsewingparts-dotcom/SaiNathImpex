@@ -117,10 +117,15 @@ export default function EditProductPage() {
         setPartsIndex(data);
         const map = {};
         for (const p of data) {
-          const key = (p.id1 || '').trim();
-          if (!key) continue;
-          map[key] = map[key] || [];
-          map[key].push(p);
+          if (p.linkedSeries && p.linkedSeries.series) {
+            const key = p.linkedSeries.series.trim();
+            if (!key) continue;
+            // Only add if not already present, or merge uniquely if needed
+            // To ensure we get exactly what was explicitly saved in linkedSeries.products:
+            if (!map[key]) {
+              map[key] = (p.linkedSeries.products || []).map(sku => ({ sku, code: sku, name: sku }));
+            }
+          }
         }
         setSeriesMap(map);
       } catch (e) {
@@ -314,9 +319,10 @@ export default function EditProductPage() {
 
       form.set("compatibleBrands", JSON.stringify(consolidate(compatibleList || [])));
 
-      // Use resolved seriesCode as the series key; include this product's SKU in the products list
-      const resolvedSeriesProducts = [...new Set([...(selectedSeriesProducts || []), generatedSku])];
-      form.set("linkedSeries", JSON.stringify({ series: seriesCode, products: resolvedSeriesProducts }));
+      // Use resolved seriesCode as the series key
+      const resolvedSeriesProducts = [...new Set(selectedSeriesProducts || [])];
+      const finalLinkedSeriesKey = selectedSeries || seriesCode;
+      form.set("linkedSeries", JSON.stringify({ series: finalLinkedSeriesKey, products: resolvedSeriesProducts }));
 
       await api(`/api/parts/${encodeURIComponent(sku)}`, {
         method: "PUT",
@@ -747,34 +753,104 @@ export default function EditProductPage() {
 
                 <div>
                   <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Products in series</div>
-                  <div className="mt-2 max-h-32 overflow-auto border hairline p-2">
+                  <div className="mt-2 border hairline p-4 bg-secondary/10">
                     {selectedSeries ? (
                       <div className="text-sm">
-                        {(seriesMap[selectedSeries] || []).map((p, i) => {
-                          const code = p.code || p.id2 || p.sku || p.name || "";
-                          return (
-                            <label key={p.sku} className="inline-flex items-center mr-2">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-copper text-base">Products in Series ({selectedSeries})</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextMap = { ...seriesMap };
+                              delete nextMap[selectedSeries];
+                              setSeriesMap(nextMap);
+                              setSelectedSeries("");
+                              setSelectedSeriesProducts([]);
+                            }}
+                            className="text-red-500 hover:underline text-[10px] uppercase font-mono tracking-wider"
+                          >
+                            Remove Series
+                          </button>
+                        </div>
+                        
+                        <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-3 mt-4">
+                          Sub Category
+                        </div>
+                        <div className="mb-4 flex flex-col space-y-2 pl-2">
+                          {(seriesMap[selectedSeries] || []).map((p, i) => {
+                            const code = p.code || p.id2 || p.sku || p.name || "";
+                            return (
+                              <label key={p.sku} className="flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  value={p.sku}
+                                  checked={selectedSeriesProducts.includes(p.sku)}
+                                  onChange={(e) => {
+                                    const skuVal = e.target.value;
+                                    setSelectedSeriesProducts((prev) =>
+                                      e.target.checked ? [...prev, skuVal] : prev.filter((s) => s !== skuVal),
+                                    );
+                                  }}
+                                  className="mr-3 accent-copper h-4 w-4"
+                                />
+                                <span className="font-mono text-sm">{code}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="border-t border-dashed pt-3 mt-2">
+                          <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground mb-2">Edit Series Info</div>
+                          <div className="grid sm:grid-cols-2 gap-3 mb-2">
+                            <label className="block">
+                              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Series</span>
                               <input
-                                type="checkbox"
-                                value={p.sku}
-                                checked={selectedSeriesProducts.includes(p.sku)}
-                                onChange={(e) => {
-                                  const skuVal = e.target.value;
-                                  setSelectedSeriesProducts((prev) =>
-                                    e.target.checked ? [...prev, skuVal] : prev.filter((s) => s !== skuVal),
-                                  );
-                                }}
-                                className="mr-1"
+                                className="mt-1 w-full hairline bg-background px-3 py-2 text-xs outline-none focus:border-copper"
+                                placeholder="Update Series Code"
+                                id="editSeriesName"
+                                defaultValue={selectedSeries}
                               />
-                              <span>{code}</span>
-                              {i < (seriesMap[selectedSeries] || []).length - 1 && <span className="mx-1">,</span>}
                             </label>
-                          );
-                        })}
+                            <label className="block">
+                              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Info</span>
+                              <input
+                                className="mt-1 w-full hairline bg-background px-3 py-2 text-xs outline-none focus:border-copper"
+                                placeholder="Comma-separated products"
+                                id="editSeriesProducts"
+                                defaultValue={(seriesMap[selectedSeries] || []).map(p => p.code || p.id2 || p.sku || p.name).join(", ")}
+                              />
+                            </label>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newName = document.getElementById("editSeriesName").value.trim();
+                              const newProds = document.getElementById("editSeriesProducts").value.split(",").map(s => s.trim()).filter(Boolean);
+                              if (!newName) return;
+                              const nextMap = { ...seriesMap };
+                              if (newName !== selectedSeries) {
+                                delete nextMap[selectedSeries];
+                              }
+                              nextMap[newName] = newProds.map(p => {
+                                const existing = (seriesMap[selectedSeries] || []).find(old => (old.sku === p || old.code === p || old.name === p || old.id2 === p));
+                                return existing || { sku: p, code: p, name: p };
+                              });
+                              setSeriesMap(nextMap);
+                              setSelectedSeries(newName);
+                              setSelectedSeriesProducts(prev => {
+                                const currentCheckedInThisSeries = prev.filter(sku => (seriesMap[selectedSeries] || []).some(old => old.sku === sku));
+                                const notInThisSeries = prev.filter(sku => !(seriesMap[selectedSeries] || []).some(old => old.sku === sku));
+                                return [...notInThisSeries, ...newProds.filter(p => currentCheckedInThisSeries.includes(p))];
+                              });
+                            }}
+                            className="w-full h-8 bg-secondary hover:bg-copper hover:text-bone text-xs font-mono uppercase tracking-widest transition-colors"
+                          >
+                            Update Series
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <>
-                        <div className="mt-3 border-t pt-3">
+                        <div className="mt-1">
                           <div className="font-mono text-[10px] tracking-widest uppercase text-copper">Create new series</div>
                           <div className="grid sm:grid-cols-2 gap-3 mt-2">
                             <label className="block">
@@ -783,6 +859,7 @@ export default function EditProductPage() {
                                 className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
                                 value={newSeriesCode}
                                 onChange={(e) => setNewSeriesCode(e.target.value)}
+                                placeholder="1.1.1"
                               />
                             </label>
 
@@ -792,6 +869,7 @@ export default function EditProductPage() {
                                 className="mt-1 w-full hairline bg-background px-3 py-2.5 text-sm outline-none focus:border-copper"
                                 value={newSeriesProductsInput}
                                 onChange={(e) => setNewSeriesProductsInput(e.target.value)}
+                                placeholder="1.1, 1.2, 1.3, 1.4, 1.5"
                               />
                             </label>
 
@@ -806,12 +884,12 @@ export default function EditProductPage() {
                                     .map((s) => s.trim())
                                     .filter(Boolean);
                                   const nextMap = { ...seriesMap };
-                                  nextMap[code] = (nextMap[code] || []).concat(
-                                    products.map((p) => ({ sku: p, code: p, name: p })),
-                                  );
+                                  nextMap[code] = products.map((p) => ({ sku: p, code: p, name: p }));
                                   setSeriesMap(nextMap);
                                   setSelectedSeries(code);
                                   setSelectedSeriesProducts(products.map((p) => p));
+                                  setNewSeriesCode("");
+                                  setNewSeriesProductsInput("");
                                 }}
                                 className="w-full h-10 bg-ink text-bone"
                               >
@@ -820,7 +898,7 @@ export default function EditProductPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Choose a series to view products.</div>
+                        <div className="text-sm text-muted-foreground mt-4 pt-4 border-t">Choose a series to view and edit products.</div>
                       </>
                     )}
                   </div>

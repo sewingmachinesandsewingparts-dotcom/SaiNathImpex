@@ -280,8 +280,9 @@ export function parsePartFormData(formData) {
       try {
         const raw = formData.get("linkedSeries");
         const parsed = raw ? JSON.parse(Array.isArray(raw) ? raw[0] : raw) : { series: "", products: [] };
-        const dummySet = new Set(["1", "2", "3", "4", "5", "6"]);
-        const cleanProds = (parsed.products || []).filter((p) => p && !dummySet.has(p.toString().trim()));
+        const cleanProds = (parsed.products || [])
+          .map((p) => (p || "").toString().trim())
+          .filter(Boolean);
         return {
           series: (parsed.series || "").trim(),
           products: cleanProds,
@@ -461,8 +462,7 @@ export function buildPartUpdateData(
  * @param {object|null} newLinkedSeries - The new linkedSeries object of the product.
  */
 export async function syncPartSeries(targetSku, oldLinkedSeries, newLinkedSeries) {
-  const dummySet = new Set(["1", "2", "3", "4", "5", "6"]);
-  const cleanSkus = (arr) => (arr || []).filter((s) => s && !dummySet.has(s.toString().trim()));
+  const cleanSkus = (arr) => (arr || []).map((s) => (s || "").toString().trim()).filter(Boolean);
 
   const oldSeriesCode = oldLinkedSeries?.series || "";
   const oldSkus = cleanSkus(oldLinkedSeries?.products);
