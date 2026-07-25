@@ -1,7 +1,7 @@
 import connectMongo from "@/src/lib/mongo";
 import Part from "@/src/models/Part";
 import { deleteCloudinaryImages } from "@/src/lib/cloudinary";
-import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData, syncPartSeries } from "@/src/lib/part";
+import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData, syncPartSeries, resolveSeriesImages } from "@/src/lib/part";
 import { getAuthCookie } from "@/src/lib/auth";
 import { jsonResponse, notFound, errorResponse, safeString } from "@/src/lib/api";
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
@@ -28,7 +28,14 @@ export async function GET(request, { params }) {
     if (!part) {
       return notFound(`Part not found with SKU ${sku}`);
     }
-    return jsonResponse(part);
+    const relatedParts = part.linkedSeries?.series
+      ? await Part.find({ "linkedSeries.series": part.linkedSeries.series }).lean()
+      : [];
+    const resolvedImages = await resolveSeriesImages(part, relatedParts);
+    return jsonResponse({
+      ...part,
+      images: resolvedImages.length > 0 ? resolvedImages : (part.images || []),
+    });
   } catch (error) {
     return errorResponse(error.message);
   }

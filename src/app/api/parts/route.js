@@ -1,6 +1,6 @@
 import connectMongo from "@/src/lib/mongo";
 import Part from "@/src/models/Part";
-import { saveUploadedImages, ensureBrandAndModel, buildPartFilter, buildSortOptions, parsePartFormData, createPartPayload, syncPartSeries } from "@/src/lib/part";
+import { saveUploadedImages, ensureBrandAndModel, buildPartFilter, buildSortOptions, parsePartFormData, createPartPayload, syncPartSeries, resolveSeriesImages } from "@/src/lib/part";
 import { jsonResponse, badRequest, errorResponse, safeString } from "@/src/lib/api";
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
@@ -25,9 +25,20 @@ export async function GET(request) {
       nameOnly: searchParams.get("nameOnly") === "true",
     });
     const parts = await Part.find(filter).sort(buildSortOptions(searchParams.get("sort"))).lean();
+    const seriesCodes = [...new Set(parts.map((part) => part.linkedSeries?.series).filter(Boolean))];
+    const seriesParts = seriesCodes.length > 0
+      ? await Part.find({ "linkedSeries.series": { $in: seriesCodes } }).lean()
+      : [];
+    const hydratedParts = await Promise.all(parts.map(async (part) => {
+      const resolvedImages = await resolveSeriesImages(part, seriesParts);
+      return {
+        ...part,
+        images: resolvedImages.length > 0 ? resolvedImages : (part.images || []),
+      };
+    }));
 
     // Cache parts list for 5 seconds locally, with stale-while-revalidate for fast page transitions
-    return jsonResponse(parts, 200, {
+    return jsonResponse(hydratedParts, 200, {
       "Cache-Control": "public, max-age=5, stale-while-revalidate=60",
     });
   } catch (error) {

@@ -132,6 +132,35 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
  * @param {boolean} params.nameOnly - Search only name.
  * @returns {Record<string, any>} MongoDB query filter.
  */
+export async function resolveSeriesImages(part, allParts = []) {
+  if (!part) return [];
+
+  const ownImages = Array.isArray(part.images) ? part.images.filter(Boolean) : [];
+  if (ownImages.length > 0) {
+    return ownImages;
+  }
+
+  const seriesCode = part.linkedSeries?.series || "";
+  if (!seriesCode) {
+    return [];
+  }
+
+  const siblings = (allParts || []).filter((candidate) => {
+    const sameSeries = candidate?.linkedSeries?.series === seriesCode;
+    const sameSku = candidate?.sku === part.sku;
+    return sameSeries && !sameSku;
+  });
+
+  for (const sibling of siblings) {
+    const siblingImages = Array.isArray(sibling.images) ? sibling.images.filter(Boolean) : [];
+    if (siblingImages.length > 0) {
+      return siblingImages;
+    }
+  }
+
+  return [];
+}
+
 export function buildPartFilter({
   q,
   brand,
