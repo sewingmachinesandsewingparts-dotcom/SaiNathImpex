@@ -1,7 +1,7 @@
 import connectMongo from "@/src/lib/mongo";
 import Part from "@/src/models/Part";
 import { deleteCloudinaryImages } from "@/src/lib/cloudinary";
-import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData, syncPartSeries, resolveSeriesImages } from "@/src/lib/part";
+import { saveUploadedImages, buildPartUpdateData, ensureBrandAndModel, parsePartFormData, syncPartSeries, resolveSeriesImages, resolveSeriesPrice, resolveSeriesCompareAt } from "@/src/lib/part";
 import { getAuthCookie } from "@/src/lib/auth";
 import { jsonResponse, notFound, errorResponse, safeString } from "@/src/lib/api";
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
@@ -32,9 +32,13 @@ export async function GET(request, { params }) {
       ? await Part.find({ "linkedSeries.series": part.linkedSeries.series }).lean()
       : [];
     const resolvedImages = await resolveSeriesImages(part, relatedParts);
+    const resolvedPrice = resolveSeriesPrice(part, relatedParts);
+    const resolvedCompareAt = resolveSeriesCompareAt(part, relatedParts);
     return jsonResponse({
       ...part,
       images: resolvedImages.length > 0 ? resolvedImages : (part.images || []),
+      price: resolvedPrice ?? part.price,
+      compareAt: resolvedCompareAt ?? part.compareAt,
     });
   } catch (error) {
     return errorResponse(error.message);
@@ -206,21 +210,42 @@ export async function PUT(request, { params }) {
         }
       : { series: "", products: [] };
 
+    const updatePayload = buildPartUpdateData(
+      existingPart,
+      formData,
+      uploadedUrls,
+      deletedImageUrls,
+      brandData,
+    );
+
     const updatedPart = await Part.findOneAndUpdate(
       { sku },
       {
-        $set: buildPartUpdateData(
-          existingPart,
-          formData,
-          uploadedUrls,
-          deletedImageUrls,
-          brandData,
-        ),
+        $set: updatePayload,
       },
       { new: true },
     );
 
     await syncPartSeries(updatedPart.sku, oldLinkedSeries, updatedPart.linkedSeries);
+
+    const seriesCode = updatedPart?.linkedSeries?.series || "";
+    const shouldPropagatePrice = Boolean(seriesCode) && (formData.has("price") || formData.has("compareAt"));
+    if (shouldPropagatePrice) {
+      const priceValue = updatePayload.price;
+      const compareAtValue = updatePayload.compareAt;
+      await Part.updateMany(
+        {
+          "linkedSeries.series": seriesCode,
+          sku: { $ne: updatedPart.sku },
+        },
+        {
+          $set: {
+            price: priceValue,
+            compareAt: compareAtValue,
+          },
+        },
+      );
+    }
 
     return jsonResponse(updatedPart);
   } catch (error) {

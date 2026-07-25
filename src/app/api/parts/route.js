@@ -1,6 +1,6 @@
 import connectMongo from "@/src/lib/mongo";
 import Part from "@/src/models/Part";
-import { saveUploadedImages, ensureBrandAndModel, buildPartFilter, buildSortOptions, parsePartFormData, createPartPayload, syncPartSeries, resolveSeriesImages } from "@/src/lib/part";
+import { saveUploadedImages, ensureBrandAndModel, buildPartFilter, buildSortOptions, parsePartFormData, createPartPayload, syncPartSeries, resolveSeriesImages, resolveSeriesPrice, resolveSeriesCompareAt } from "@/src/lib/part";
 import { jsonResponse, badRequest, errorResponse, safeString } from "@/src/lib/api";
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
@@ -31,9 +31,13 @@ export async function GET(request) {
       : [];
     const hydratedParts = await Promise.all(parts.map(async (part) => {
       const resolvedImages = await resolveSeriesImages(part, seriesParts);
+      const resolvedPrice = resolveSeriesPrice(part, seriesParts);
+      const resolvedCompareAt = resolveSeriesCompareAt(part, seriesParts);
       return {
         ...part,
         images: resolvedImages.length > 0 ? resolvedImages : (part.images || []),
+        price: resolvedPrice ?? part.price,
+        compareAt: resolvedCompareAt ?? part.compareAt,
       };
     }));
 

@@ -161,6 +161,60 @@ export async function resolveSeriesImages(part, allParts = []) {
   return [];
 }
 
+export function resolveSeriesPrice(part, allParts = []) {
+  if (!part) return null;
+
+  if (typeof part.price === "number" && part.price >= 0) {
+    return part.price;
+  }
+
+  const seriesCode = part.linkedSeries?.series || "";
+  if (!seriesCode) {
+    return null;
+  }
+
+  const siblings = (allParts || []).filter((candidate) => {
+    const sameSeries = candidate?.linkedSeries?.series === seriesCode;
+    const sameSku = candidate?.sku === part.sku;
+    return sameSeries && !sameSku;
+  });
+
+  for (const sibling of siblings) {
+    if (typeof sibling.price === "number" && sibling.price >= 0) {
+      return sibling.price;
+    }
+  }
+
+  return null;
+}
+
+export function resolveSeriesCompareAt(part, allParts = []) {
+  if (!part) return null;
+
+  if (typeof part.compareAt === "number" && part.compareAt >= 0) {
+    return part.compareAt;
+  }
+
+  const seriesCode = part.linkedSeries?.series || "";
+  if (!seriesCode) {
+    return null;
+  }
+
+  const siblings = (allParts || []).filter((candidate) => {
+    const sameSeries = candidate?.linkedSeries?.series === seriesCode;
+    const sameSku = candidate?.sku === part.sku;
+    return sameSeries && !sameSku;
+  });
+
+  for (const sibling of siblings) {
+    if (typeof sibling.compareAt === "number" && sibling.compareAt >= 0) {
+      return sibling.compareAt;
+    }
+  }
+
+  return null;
+}
+
 export function buildPartFilter({
   q,
   brand,
