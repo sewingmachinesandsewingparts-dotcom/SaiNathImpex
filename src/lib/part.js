@@ -13,6 +13,7 @@ import {
   escapeRegExp,
 } from "@/src/lib/api";
 import { buildSku, buildProductName } from "@/src/lib/sku";
+import { resolveIdentifierFields } from "./part-identifiers.js";
 
 const uploadsDir = path.join(os.tmpdir(), "uploads");
 
@@ -334,16 +335,20 @@ export function buildSortOptions(sort) {
  */
 export function parsePartFormData(formData) {
   const get = (name) => safeString(formData.get(name));
+  const explicitSeries = get("series") || get("linkedSeries.series") || get("seriesCode") || "";
+  const explicitId1 = get("id1") || get("MCG") || "";
+  const explicitId2 = get("id2") || get("OEM") || "";
   return {
     sku: get("sku"),
     name: get("name"),
     description: get("description"),
     diagramNumber: get("diagramNumber"),
+    series: explicitSeries,
     // MCG / OEM  (new explicit fields; fall back to legacy id1/id2 if absent)
-    MCG: get("MCG") || get("id1"),
-    OEM: get("OEM") || get("id2"),
-    id1: get("id1"),
-    id2: get("id2"),
+    MCG: get("MCG") || explicitId1 || explicitSeries,
+    OEM: get("OEM") || explicitId2 || "",
+    id1: explicitId1 || explicitSeries,
+    id2: explicitId2,
     altPartNumbers: parseList(get("altPartNumbers")),
     compatMachineModels: parseList(get("compatMachineModels")),
     compatNeedleSystem: get("compatNeedleSystem"),
@@ -434,7 +439,8 @@ export function createPartPayload(values, uploadedUrls, brandData) {
   // Dynamically generate SKU and product name.
   // buildSku/buildProductName now handle series deduplication internally.
   const modelPart = (values.modelName || "").trim();
-  const seriesPart = (values.linkedSeries?.series || "").trim();
+  const resolvedIdentifiers = resolveIdentifierFields({}, values);
+  const seriesPart = resolvedIdentifiers.series || (values.linkedSeries?.series || "").trim();
   const generatedSku = buildSku(
     values.categoryRoot,
     modelPart,
@@ -452,10 +458,10 @@ export function createPartPayload(values, uploadedUrls, brandData) {
 
   return {
     sku: generatedSku,
-    MCG: values.MCG || values.id1 || "",
-    OEM: values.OEM || values.id2 || "",
-    id1: values.id1,
-    id2: values.id2,
+    MCG: resolvedIdentifiers.MCG || values.MCG || values.id1 || "",
+    OEM: resolvedIdentifiers.OEM || values.OEM || values.id2 || "",
+    id1: resolvedIdentifiers.id1 || values.id1 || "",
+    id2: resolvedIdentifiers.id2 || values.id2 || "",
     name: generatedName,
     description: values.description,
     diagramNumber: values.diagramNumber,
@@ -517,6 +523,7 @@ export function buildPartUpdateData(
 ) {
   const values = parsePartFormData(formData);
   const imageList = existingPart.images?.filter((img) => !deletedImageUrls.includes(img)) || [];
+  const resolvedIdentifiers = resolveIdentifierFields(existingPart, values, formData);
 
   const updatedCompatibleBrands = formData.has("compatibleBrands")
     ? values.compatibleBrands
@@ -535,10 +542,10 @@ export function buildPartUpdateData(
     name: values.name || existingPart.name,
     description: formData.has("description") ? values.description : existingPart.description,
     diagramNumber: formData.has("diagramNumber") ? values.diagramNumber : existingPart.diagramNumber,
-    MCG: (formData.has("MCG") || formData.has("id1")) ? (values.MCG || values.id1 || existingPart.MCG || "") : (existingPart.MCG || ""),
-    OEM: (formData.has("OEM") || formData.has("id2")) ? (values.OEM || values.id2 || existingPart.OEM || "") : (existingPart.OEM || ""),
-    id1: formData.has("id1") ? values.id1 : existingPart.id1,
-    id2: formData.has("id2") ? values.id2 : existingPart.id2,
+    MCG: resolvedIdentifiers.MCG || existingPart.MCG || "",
+    OEM: resolvedIdentifiers.OEM || existingPart.OEM || "",
+    id1: resolvedIdentifiers.id1 || existingPart.id1 || "",
+    id2: resolvedIdentifiers.id2 || existingPart.id2 || "",
     altPartNumbers: formData.has("altPartNumbers") ? values.altPartNumbers : existingPart.altPartNumbers,
     compat: {
       machineModels,

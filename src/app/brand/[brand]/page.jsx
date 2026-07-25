@@ -18,15 +18,30 @@ function getBrandCode(brandLike, fallbackSlug) {
   return `${first}${second}`;
 }
 
-function formatGroupLabel(groupCode, brandLike, fallbackSlug) {
-  const normalized = String(groupCode || "").trim().toUpperCase();
-  const brandCode = getBrandCode(brandLike, fallbackSlug);
-  const digitsOnly = normalized.match(/\d{3,8}/)?.[0] || "";
+function normalizeSeriesValue(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
 
-  if (!normalized) return brandCode || "";
+  const upper = trimmed.toUpperCase();
+  const prefixed = upper.match(/([A-Z]{1,6})[-\s]?([0-9]{3,8})/);
+  if (prefixed) return `${prefixed[1]}-${prefixed[2]}`;
+
+  const digitsOnly = upper.match(/\d{3,8}/)?.[0];
+  if (digitsOnly) return digitsOnly;
+  return upper;
+}
+
+function formatGroupLabel(groupCode, brandLike, fallbackSlug) {
+  const normalized = normalizeSeriesValue(groupCode);
+  if (!normalized) {
+    const brandCode = getBrandCode(brandLike, fallbackSlug);
+    return brandCode || "";
+  }
+
+  if (normalized.includes("-")) return normalized;
+  const brandCode = getBrandCode(brandLike, fallbackSlug);
   if (!brandCode) return normalized;
   if (normalized.startsWith(brandCode)) return normalized;
-  if (digitsOnly && !normalized.includes(brandCode)) return `${brandCode}${digitsOnly}`;
   return `${brandCode}${normalized}`;
 }
 
@@ -35,14 +50,19 @@ function extractSeriesCode(part) {
     part?.linkedSeries?.series,
     part?.series?.code,
     part?.series?.[0]?.code,
+    part?.series,
     part?.MCG,
+    part?.series?.series,
+    part?.id1,
+    part?.id2,
   ]
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
     .map((value) => String(value || "").trim())
     .filter(Boolean);
 
   for (const candidate of directCandidates) {
-    const digitsOnly = candidate.match(/\d{3,8}/)?.[0];
-    if (digitsOnly) return digitsOnly;
+    const normalized = normalizeSeriesValue(candidate);
+    if (normalized) return normalized;
   }
 
   const haystacks = [part?.sku, part?.name, part?.description, part?.diagramNumber, part?.id1, part?.id2, ...(part?.altPartNumbers || [])]
@@ -61,7 +81,7 @@ function extractSeriesCode(part) {
 }
 
 function getGroupKey(part) {
-  return extractSeriesCode(part) || part?.MCG || part?.linkedSeries?.series || part?.id1 || part?.OEM || part?.id2 || part?.sku || "";
+  return extractSeriesCode(part) || part?.linkedSeries?.series || part?.MCG || part?.id1 || part?.OEM || part?.id2 || part?.sku || "";
 }
 
 export default function BrandPage({ params }) {
@@ -173,12 +193,14 @@ export default function BrandPage({ params }) {
                   </div>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {groupParts.slice(0, 3).map((p) => {
-                        const previewLabel = p.OEM || p.id2 || p.id1 || p.sku || "";
-                        return (
-                          <span key={previewLabel || p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
-                            {previewLabel}
+                        const previewLabels = [p.linkedSeries?.series || p.series?.code || p.id1, p.id1, p.id2, p.OEM, p.sku]
+                          .filter(Boolean)
+                          .map((value) => String(value));
+                        return previewLabels.slice(0, 2).map((label) => (
+                          <span key={`${p.sku}-${label}`} className="font-mono text-[9px] bg-background/20 px-1 rounded">
+                            {label}
                           </span>
-                        );
+                        ));
                       })}
                       {groupParts.length > 3 && (
                         <span className="font-mono text-[9px] opacity-60">+{groupParts.length - 3}</span>

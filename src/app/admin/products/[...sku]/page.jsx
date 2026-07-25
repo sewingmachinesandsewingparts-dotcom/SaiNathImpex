@@ -265,8 +265,8 @@ export default function EditProductPage() {
         selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
       const categoryText =
         selectedCategory === "+ Create new" ? categoryCreateValue.trim() : selectedCategory.trim();
-      const seriesCode = form.get("id1")?.toString().trim();
-      const iscCode = form.get("id2")?.toString().trim();
+      const seriesCode = form.get("series")?.toString().trim() || form.get("id1")?.toString().trim();
+      const iscCode = form.get("id2")?.toString().trim() || form.get("OEM")?.toString().trim();
       const hasBrandName = Boolean(resolvedBrandName);
       const parsedPartCode = hasBrandName
         ? extractPartCodeFromSku(product.sku, seriesCode, true)
@@ -302,6 +302,7 @@ export default function EditProductPage() {
       form.set("modelName", resolvedModelName || "");
       form.set("categoryRoot", categoryText);
       form.set("partCode", resolvedPartCode);
+      form.set("series", seriesCode);
 
       const userSpecifiedSku = form.get("sku")?.toString().trim();
       const userSpecifiedName = form.get("name")?.toString().trim();
@@ -325,6 +326,10 @@ export default function EditProductPage() {
 
       form.set("name", generatedName);
       form.set("sku", generatedSku);
+      form.set("id1", seriesCode || product.id1 || "");
+      form.set("MCG", seriesCode || product.MCG || "");
+      form.set("id2", iscCode || product.id2 || product.OEM || "");
+      form.set("OEM", iscCode || product.OEM || product.id2 || "");
       // consolidate compatibleList by brand (merge machines) before sending
       const consolidate = (list) => {
         const map = new Map();

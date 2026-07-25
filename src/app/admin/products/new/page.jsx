@@ -202,7 +202,7 @@ export default function NewProductPage() {
 
       form.set("name", generatedName);
       form.set("sku", generatedSku);
-      // Set both legacy id fields AND the new explicit MCG/OEM fields
+      form.set("series", seriesCode);
       form.set("id1", seriesCode);
       form.set("MCG", seriesCode);
       form.set("id2", iscCode || "");
@@ -470,8 +470,8 @@ export default function NewProductPage() {
                 mono
                 required
               />
-              <Inp label="Series code (MCG)" name="seriesCode" placeholder="80005" mono required />
-              <Inp label="OEM Number" name="iscCode" placeholder="205773" mono />
+              <Inp label="Series code" name="seriesCode" placeholder="PG-80001" mono required />
+              <Inp label="Item number" name="iscCode" placeholder="L52-01" mono />
               <Inp label="Diagram #" name="diagramNumber" placeholder="D-112" mono />
               <Inp
                 label="Alt part #s (comma-sep)"
