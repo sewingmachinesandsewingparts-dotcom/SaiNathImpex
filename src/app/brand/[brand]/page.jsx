@@ -56,17 +56,17 @@ export default function BrandPage({ params }) {
     );
   }
 
-  // ── Group parts by MCG (Machine Category Group) ──────────────────────────
-  // Falls back to id1 for backward-compat with docs that pre-date MCG field.
-  const mcgMap = {};
+  // ── Group parts by the primary part code/series identifier.
+  // Prefer the documented MCG field, but fall back to the current product identifier.
+  const groupingMap = {};
   for (const part of parts) {
-    const key = part.MCG || part.id1 || "";
+    const key = part.MCG || part.id1 || part.OEM || part.id2 || part.sku || "";
     if (!key) continue;
-    if (!mcgMap[key]) mcgMap[key] = [];
-    mcgMap[key].push(part);
+    if (!groupingMap[key]) groupingMap[key] = [];
+    groupingMap[key].push(part);
   }
-  const mcgGroups = Object.entries(mcgMap).sort(([a], [b]) => a.localeCompare(b));
-  const ungrouped = parts.filter((p) => !p.MCG && !p.id1);
+  const groupEntries = Object.entries(groupingMap).sort(([a], [b]) => a.localeCompare(b));
+  const ungrouped = parts.filter((p) => !p.MCG && !p.id1 && !p.OEM && !p.id2 && !p.sku);
 
   return (
     <PageShell>
@@ -88,7 +88,7 @@ export default function BrandPage({ params }) {
               <h1 className="font-display text-7xl md:text-8xl">{brand.name}</h1>
             </div>
             <div className="font-mono text-xs text-bone/70">
-              {mcgGroups.length} MCG group{mcgGroups.length !== 1 ? "s" : ""} · {parts.length} parts
+              {groupEntries.length} group{groupEntries.length !== 1 ? "s" : ""} · {parts.length} parts
             </div>
           </div>
         </div>
@@ -96,30 +96,32 @@ export default function BrandPage({ params }) {
 
       <div className="mx-auto max-w-7xl px-4 py-10">
 
-        {/* ── MCG Groups grid ── */}
-        {mcgGroups.length > 0 && (
+        {/* ── Group grid ── */}
+        {groupEntries.length > 0 && (
           <>
             <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-copper mb-4">
-              Browse by MCG (Machine Category Group)
+              Browse by part group
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-14">
-              {mcgGroups.map(([mcg, groupParts]) => (
+              {groupEntries.map(([groupKey, groupParts]) => (
                 <Link
-                  key={mcg}
-                  href={`/brand/${brand.slug}/${mcg}`}
+                  key={groupKey}
+                  href={`/brand/${brand.slug}/${groupKey}`}
                   className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-4 flex flex-col gap-1 group"
                 >
-                  <div className="font-display text-2xl tracking-wide">{mcg}</div>
+                  <div className="font-display text-2xl tracking-wide">{groupKey}</div>
                   <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground group-hover:text-bone/60">
                     {groupParts.length} OEM variant{groupParts.length !== 1 ? "s" : ""}
                   </div>
-                  {/* Show OEM pills preview */}
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {groupParts.slice(0, 3).map((p) => (
-                      <span key={p.OEM || p.id2 || p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
-                        {p.OEM || p.id2 || p.sku}
-                      </span>
-                    ))}
+                    {groupParts.slice(0, 3).map((p) => {
+                      const previewLabel = p.OEM || p.id2 || p.id1 || p.sku || "";
+                      return (
+                        <span key={previewLabel || p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
+                          {previewLabel}
+                        </span>
+                      );
+                    })}
                     {groupParts.length > 3 && (
                       <span className="font-mono text-[9px] opacity-60">+{groupParts.length - 3}</span>
                     )}
@@ -135,7 +137,7 @@ export default function BrandPage({ params }) {
           All {brand.name} parts
           {ungrouped.length > 0 && (
             <span className="font-mono text-base text-muted-foreground ml-3">
-              ({ungrouped.length} without MCG)
+              ({ungrouped.length} without group)
             </span>
           )}
         </h2>
