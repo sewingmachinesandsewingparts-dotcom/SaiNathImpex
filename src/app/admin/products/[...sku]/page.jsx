@@ -271,7 +271,8 @@ export default function EditProductPage() {
       const parsedPartCode = hasBrandName
         ? extractPartCodeFromSku(product.sku, seriesCode, true)
         : product.id1?.trim() || extractPartCodeFromSku(product.sku, seriesCode, false);
-      const resolvedPartCode = explicitPartCode || parsedPartCode || "";
+      const fallbackPartCode = product.id1?.trim() || product.MCG?.trim() || product.OEM?.trim() || product.sku?.trim() || "";
+      const resolvedPartCode = explicitPartCode || parsedPartCode || fallbackPartCode || "";
 
       if (mode === "brand" && !resolvedBrandName) {
         setStatusMessage("Brand name is required to update the product.");
