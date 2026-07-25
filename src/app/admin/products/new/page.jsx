@@ -154,7 +154,10 @@ export default function NewProductPage() {
       }
       form.set("mode", mode);
       const explicitPartCode = form.get("brandNameOverride")?.toString().trim();
-      const resolvedBrandName = selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim();
+      const currentBrandSelection = selectedBrand === "+ Create new"
+        ? brandCreateValue.trim()
+        : selectedBrand.trim();
+      const resolvedBrandName = currentBrandSelection || "";
       const resolvedModelName = selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
       const resolvedPartCode = explicitPartCode;
 

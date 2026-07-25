@@ -14,6 +14,7 @@ function extractPartCodeFromSku(sku, seriesCode, hasBrand) {
   const parts = sku.split("-");
   const searchSeries = String(seriesCode || "").trim().toUpperCase();
 
+  // If SKU ends with the series code, the model part is the second‑last segment.
   if (searchSeries && parts.length >= 3 && parts[parts.length - 1].toUpperCase() === searchSeries) {
     return parts[parts.length - 2] || "";
   }
@@ -26,9 +27,14 @@ function extractPartCodeFromSku(sku, seriesCode, hasBrand) {
   }
 
   if (!modelSeries) return "";
-  const upperModelSeries = modelSeries.toUpperCase();
-  if (searchSeries && upperModelSeries.endsWith(searchSeries)) {
-    return modelSeries.slice(0, modelSeries.length - searchSeries.length);
+
+  // Remove any trailing occurrences of the series code (e.g., "NP" may appear multiple times).
+  let upperModelSeries = modelSeries.toUpperCase();
+  if (searchSeries) {
+    while (upperModelSeries.endsWith(searchSeries)) {
+      modelSeries = modelSeries.slice(0, -searchSeries.length);
+      upperModelSeries = modelSeries.toUpperCase();
+    }
   }
 
   return modelSeries;
@@ -251,9 +257,10 @@ export default function EditProductPage() {
 
       const explicitPartCode = form.get("partCode")?.toString().trim();
       const explicitBrandName = form.get("brandName")?.toString().trim();
-      const resolvedBrandName =
-        explicitBrandName ||
-        (selectedBrand === "+ Create new" ? brandCreateValue.trim() : selectedBrand.trim());
+      const currentBrandSelection = selectedBrand === "+ Create new"
+        ? brandCreateValue.trim()
+        : selectedBrand.trim();
+      const resolvedBrandName = currentBrandSelection || explicitBrandName || "";
       const resolvedModelName =
         selectedModel === "+ Create new" ? modelCreateValue.trim() : selectedModel.trim();
       const categoryText =
@@ -295,14 +302,19 @@ export default function EditProductPage() {
       form.set("categoryRoot", categoryText);
       form.set("partCode", resolvedPartCode);
 
-      const generatedSku = buildSku(
+      const userSpecifiedSku = form.get("sku")?.toString().trim();
+      const userSpecifiedName = form.get("name")?.toString().trim();
+      const shouldPreserveSku = Boolean(userSpecifiedSku) && userSpecifiedSku !== product.sku;
+      const shouldPreserveName = Boolean(userSpecifiedName) && userSpecifiedName !== product.name;
+
+      const generatedSku = shouldPreserveSku ? userSpecifiedSku : buildSku(
         categoryText,
         resolvedPartCode,
         seriesCode,
         iscCode || "",
         resolvedBrandName,
       );
-      const generatedName = buildProductName(
+      const generatedName = shouldPreserveName ? userSpecifiedName : buildProductName(
         categoryText,
         resolvedPartCode,
         seriesCode,
@@ -566,7 +578,6 @@ export default function EditProductPage() {
                 placeholder="SKU-JUKI-HX48300"
                 mono
                 defaultValue={product.sku}
-                disabled
               />
               <Inp
                 label="Part # (id1)"

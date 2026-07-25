@@ -60,3 +60,21 @@ test("buildSku and buildProductName match README rules for branded products", ()
     "Pegasus Eye Guard Hx-35000 747D",
   );
 });
+
+test("collapses repeated NP segments in needle plate names and SKUs", () => {
+  assert.equal(
+    buildSku("Needle Plate", "PG80005NPNPNPNPNP", "NP-OVERLOCK-GLV", "205773", "Juki"),
+    "JUK-NP-PG80005NP-OVERLOCK-GLV-205773",
+  );
+  assert.equal(
+    buildProductName("Needle Plate", "PG80005NPNPNPNPNP", "NP-OVERLOCK-GLV", "205773", "Juki"),
+    "Juki Needle Plate PG80005NP-OVERLOCK-GLV 205773",
+  );
+});
+
+test("uses the selected brand name for branded needle plate products", () => {
+  assert.equal(
+    buildProductName("Needle Plate", "PG80005NPNPNPNPNP", "NP-OVERLOCK-GLV", "205773", "Pegasus"),
+    "Pegasus Needle Plate PG80005NP-OVERLOCK-GLV 205773",
+  );
+});

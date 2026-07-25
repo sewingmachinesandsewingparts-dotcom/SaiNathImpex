@@ -12,6 +12,7 @@ import {
   safeString,
   escapeRegExp,
 } from "@/src/lib/api";
+import { buildSku, buildProductName } from "@/src/lib/sku";
 
 const uploadsDir = path.join(os.tmpdir(), "uploads");
 
@@ -343,13 +344,32 @@ export function deriveMachineModels(compatibleBrands = [], explicitModels = []) 
 export function createPartPayload(values, uploadedUrls, brandData) {
   const machineModels = deriveMachineModels(values.compatibleBrands, values.compatMachineModels);
 
+  // Dynamically generate SKU and product name.
+  // buildSku/buildProductName now handle series deduplication internally.
+  const modelPart = (values.modelName || "").trim();
+  const seriesPart = (values.linkedSeries?.series || "").trim();
+  const generatedSku = buildSku(
+    values.categoryRoot,
+    modelPart,
+    seriesPart,
+    "",
+    values.brandName,
+  );
+  const generatedName = buildProductName(
+    values.categoryRoot,
+    modelPart,
+    seriesPart,
+    "",
+    values.brandName,
+  );
+
   return {
-    sku: values.sku,
+    sku: generatedSku,
     MCG: values.MCG || values.id1 || "",
     OEM: values.OEM || values.id2 || "",
     id1: values.id1,
     id2: values.id2,
-    name: values.name,
+    name: generatedName,
     description: values.description,
     diagramNumber: values.diagramNumber,
     altPartNumbers: values.altPartNumbers,
