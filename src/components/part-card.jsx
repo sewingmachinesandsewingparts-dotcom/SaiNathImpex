@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "@/src/lib/cart-context";
+import { partHref } from "@/src/lib/format";
 
 /**
  * Formats a numeric value into Indian Rupee (INR) currency format.
@@ -46,7 +47,7 @@ export function PartCard({ part, span = 1, variant = "default" }) {
 
   return (
     <Link
-      href={`/part/${part.sku}`}
+      href={partHref(part)}
       className={`group relative flex flex-col hairline ${isDark ? "bg-ink text-bone hover:border-copper" : "bg-card hover:border-ink"} transition-colors ${
         span === 2 ? "md:col-span-2" : ""
       }`}
@@ -90,7 +91,7 @@ export function PartCard({ part, span = 1, variant = "default" }) {
           <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${isDark ? "text-bone/70" : "text-muted-foreground"}`}>
             {part.brandName} · {part.modelName}
           </span>
-          <span className={`font-mono text-[10px] ${isDark ? "text-bone/70" : "text-muted-foreground"}`}>{part.id1}</span>
+          <span className={`font-mono text-[10px] ${isDark ? "text-bone/70" : "text-muted-foreground"}`}>{part.MCG || part.id1}</span>
         </div>
         <h3 className={`font-display text-xl tracking-wide leading-none ${isDark ? "text-bone" : "text-foreground"}`}>{part.name}</h3>
         <p className={`text-xs ${isDark ? "text-bone/70" : "text-muted-foreground"} line-clamp-2`}>{part.description}</p>

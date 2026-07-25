@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { useCart } from "@/src/lib/cart-context";
-import { formatINR } from "@/src/lib/format";
+import { formatINR, partHref } from "@/src/lib/format";
 import { Minus, Plus, X, ArrowRight, ShieldCheck, ShoppingBag } from "lucide-react";
 
 export default function Cart() {
@@ -65,7 +65,7 @@ export default function Cart() {
                       {part.brandName} · {part.modelName}
                     </div>
                     <Link
-                      href={`/part/${part.sku}`}
+                      href={partHref(part)}
                       className="font-display text-xl truncate block hover:text-copper"
                     >
                       {part.name}

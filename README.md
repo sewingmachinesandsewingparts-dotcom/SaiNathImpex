@@ -641,3 +641,260 @@ PEGASUS/80000/202403
   "__v": 0,
   "compareAt": null
 }
+
+
+
+the final data 
+
+{
+  "sku": "PEG-NP-PG80005-205773",
+
+  "MCG": "80005",
+  "OEM": "205773",
+
+  "id1": "NP-OVERLOCK-GLV",
+  "id2": "205773",
+  "name": "PEGASUS Needle Plate (205773) for L52-01 Overlock - 4MM",
+  "description": "Industrial high-speed overlock sewing machine throat plate engineered specifically for a 4mm wide-gauge seaming loop setup. Crafted from precision-ground case-hardened tool steel to safeguard accurate material transit, dissipate high operational friction heat, and ensure perfect stitch loop formation on heavy garment runs.",
+  "price": 315,
+  "compareAt": 360,
+  "stock": 18,
+  "stockAlert": 4,
+  "hasMotor": false,
+  "diagramNumber": "L52-GAUGE-P01",
+  "altPartNumbers": [
+    "205773",
+    "80005-205773"
+  ],
+  "images": [
+    "https://cloudinary.com"
+  ],
+  "compat": {
+    "machineModels": [
+      "L52-01",
+      "L52-Series"
+    ],
+    "stitchType": [
+      "Overlock"
+    ],
+    "needleSystem": "DCx1",
+    "threadType": "Core-Spun Polyester or Spun Thread"
+  },
+  "specs": {
+    "material": "Hardened Tool Steel with Matte Chrome Finish",
+    "weight": "42g",
+    "dimensions": "4MM Needle Distance"
+  },
+  "maintenance": {
+    "lubrication": "Dry running contact zone - machine oil splash area adjacent",
+    "replacementInterval_hours": 3000
+  },
+  "brandSlug": "pegasus",
+  "brandName": "PEGASUS",
+  "modelSlug": "l5201",
+  "modelName": "L52-01 Industrial Overlock",
+  "categoryRoot": "Needle Plate",
+  "categoryRootSlug": "needle-plate",
+  "isBrand": false,
+
+  "linkedSeries": {
+    "series": "80005",
+    "products": [
+      "PEG-NP-PG80005-209298",
+      "PEG-NP-PG80005-209299"
+    ]
+  },
+  "rating": 4.8,
+  "reviews": 2,
+  "reviewEntries": [
+    {
+      "userId": "usr_factory_99812",
+      "name": "Apparel Plant Tech",
+      "rating": 5,
+      "comment": "Perfect OEM fitment on our L52 line. Solved skipped stitches on heavy fabrics.",
+      "createdAt": "2026-07-24T10:15:01.791Z"
+    }
+  ],
+
+  "taxonomy": {
+    "department": "Machine Parts",
+    "category": "Sewing Machine Parts",
+    "subCategory": "Needle Plates",
+    "productType": "Standard Overlock Components",
+    "family": "L52 Gauge Parts"
+  },
+
+  "manufacturer": "PEGASUS",
+  "manufacturerCountry": "Japan",
+  "status": "Active",
+
+  "keywords": [
+    "pegasus 205773",
+    "l52-01 throat plate",
+    "80005 parts",
+    "4mm overlock plate",
+    "gauge parts"
+  ],
+  "aliases": [
+    "205773",
+    "L52 Needle Plate 4mm"
+  ],
+
+  "crossReferences": [
+    {
+      "number": "80005-205773",
+      "manufacturer": "PEGASUS",
+      "type": "OEM"
+    },
+    {
+      "number": "NP-205773-4",
+      "manufacturer": "Aftermarket Premium",
+      "type": "Equivalent"
+    }
+  ],
+
+  "specificationGroups": [
+    {
+      "group": "Dimensional Specifications",
+      "items": [
+        { "key": "Needle Distance Space", "value": "4", "unit": "mm" },
+        { "key": "Component Weight", "value": "42", "unit": "g" }
+      ]
+    }
+  ],
+
+  "compatibleBrands": [
+    {
+      "brand": "PEGASUS",
+      "machines": [
+        {
+          "model": "L52-01",
+          "series": "L52-Series",
+          "machineType": "Industrial Overlock",
+          "subclass": "01 Heavy Duty Edge",
+          "needleSystem": "DCx1",
+          "stitchType": "Overlock Class 504",
+          "notes": "Requires pairing with compatible 4mm feed dog arrays"
+        }
+      ]
+    }
+  ],
+
+  "series": [
+    {
+      "id": "SER-PG80005",
+      "code": "80005",
+      "name": "Pegasus L52-01 Series Gauge Grid",
+      "description": "Comprehensive overlock gauge components group covering standard, medium, and wide fabric spacing thresholds.",
+      "specifications": [
+        {
+          "group": "Series Standards",
+          "items": [
+            { "key": "Base Machine Type", "value": "Cylinder or Flat Bed Overlock", "unit": "" }
+          ]
+        }
+      ],
+      "products": [
+        {
+          "sku": "PEG-NP-PG80005-209298",
+          "code": "209298",
+          "name": "PEGASUS Needle Plate (209298) for L52-01 Overlock - 2MM",
+          "barcode": "4900080005201",
+          "attributes": [
+            { "key": "Gauge Spacing Width", "value": "2", "unit": "mm" }
+          ],
+          "specifications": [
+            {
+              "group": "Technical Specs",
+              "items": [
+                { "key": "Weight", "value": "40", "unit": "g" }
+              ]
+            }
+          ],
+          "crossReferences": [
+            { "number": "209298", "manufacturer": "PEGASUS", "type": "OEM" }
+          ],
+          "compatibility": [
+            {
+              "brand": "PEGASUS",
+              "machines": [
+                { "model": "L52-01", "series": "L52-Series", "machineType": "Overlock", "needleSystem": "DCx1", "notes": "Micro edge variant" }
+              ]
+            }
+          ],
+          "images": [
+            { "url": "https://cloudinary.com", "type": "Gallery", "alt": "2mm view", "order": 1 }
+          ],
+          "documents": [],
+          "inventory": { "warehouse": "Main-WH-ZoneB", "quantity": 15, "reserved": 0, "minimum": 5 },
+          "pricing": { "currency": "USD", "cost": 120, "wholesale": 210, "retail": 310 },
+          "status": "Active"
+        },
+        {
+          "sku": "PEG-NP-PG80005-209299",
+          "code": "209299",
+          "name": "PEGASUS Needle Plate (209299) for L52-01 Overlock - 3MM",
+          "barcode": "4900080005202",
+          "attributes": [
+            { "key": "Gauge Spacing Width", "value": "3", "unit": "mm" }
+          ],
+          "specifications": [
+            {
+              "group": "Technical Specs",
+              "items": [
+                { "key": "Weight", "value": "40", "unit": "g" }
+              ]
+            }
+          ],
+          "crossReferences": [
+            { "number": "209299", "manufacturer": "PEGASUS", "type": "OEM" }
+          ],
+          "compatibility": [
+            {
+              "brand": "PEGASUS",
+              "machines": [
+                { "model": "L52-01", "series": "L52-Series", "machineType": "Overlock", "needleSystem": "DCx1", "notes": "Medium general garment variant" }
+              ]
+            }
+          ],
+          "images": [
+            { "url": "https://cloudinary.com", "type": "Gallery", "alt": "3mm view", "order": 1 }
+          ],
+          "documents": [],
+          "inventory": { "warehouse": "Main-WH-ZoneB", "quantity": 20, "reserved": 0, "minimum": 5 },
+          "pricing": { "currency": "USD", "cost": 120, "wholesale": 210, "retail": 310 },
+          "status": "Active"
+        }
+      ]
+    }
+  ],
+
+  "documents": [
+    {
+      "title": "Pegasus L32/L52 Parts Catalog & Gauge Chart",
+      "type": "Manual",
+      "url": "https://www.supsew.com/download/Pegasus/Pegasus%20L32,%20L52.pdf"
+    }
+  ],
+
+  "gallery": [
+    {
+      "url": "https://cloudinary.com",
+      "type": "Gallery",
+      "alt": "Pegasus 205773 Profile View",
+      "order": 1
+    }
+  ],
+
+  "seo": {
+    "slug": "pegasus-needle-plate-205773-l52-01-4mm",
+    "title": "Pegasus Needle Plate 205773 for L52-01 Overlock (4MM)",
+    "description": "Buy the genuine industrial Pegasus replacement needle plate part 205773 engineered precisely for 4mm wide overlock tracking layouts on the L52-01 platform.",
+    "keywords": [
+      "Pegasus 205773",
+      "L52-01 Throat Plate",
+      "4mm Overlock Component",
+      "Industrial Sewing Machine Gauge"
+    ]
+  }
+}

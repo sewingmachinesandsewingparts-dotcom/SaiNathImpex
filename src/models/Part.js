@@ -7,8 +7,8 @@ const partSchema = new mongoose.Schema(
     // ======================================================
     // MCG / OEM IDENTIFIERS
     // ======================================================
-    MCG: { type: String, index: true },   // Machine Category Group  e.g. "8000"
-    OEM: { type: String, index: true },   // OEM part number         e.g. "205773"
+    MCG: { type: String },   // Machine Category Group  e.g. "8000"
+    OEM: { type: String },   // OEM part number         e.g. "205773"
 
     // Legacy generic identifiers (kept for backward compatibility)
     id1: { type: String },
