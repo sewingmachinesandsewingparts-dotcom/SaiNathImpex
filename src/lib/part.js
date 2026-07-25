@@ -280,10 +280,21 @@ export function buildPartFilter({
 
     const candidateList = Array.from(candidates);
 
+    // Escape candidates for regex matching against SKU
+    const skuRegex = new RegExp(candidateList.map(escapeRegExp).join("|"), "i");
+
     filter.$or = [
       { MCG: { $in: candidateList } },
       { "linkedSeries.series": { $in: candidateList } },
+      { sku: skuRegex },
+      { id1: { $in: candidateList } },
     ];
+
+    // Explicitly exclude anomalous SKUs that the user identified for the 80005 series
+    if (upperMcg.includes("80005")) {
+      filter.$and = filter.$and || [];
+      filter.$and.push({ sku: { $not: /OVERLOCK-GLV|(NP){2,}/i } });
+    }
   }
 
   // Filter by OEM part number e.g. "205773"

@@ -63,6 +63,7 @@ function normalizeModelCodeForName(modelCode) {
 function collapseRepeatedNpSegments(value) {
   return String(value || "")
     .trim()
+    .replace(/(?:NP[-]?)+NP/gi, "NP")
     .replace(/(NP)+/gi, "NP");
 }
 

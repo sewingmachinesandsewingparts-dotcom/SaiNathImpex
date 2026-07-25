@@ -74,7 +74,8 @@ function extractSeriesCode(part) {
     .find(Boolean);
 
   if (match) {
-    return `${match[2]}`;
+    // Return full normalized code e.g. "PG-80005" not just "80005"
+    return normalizeSeriesValue(`${match[1]}${match[2]}`);
   }
 
   return "";
