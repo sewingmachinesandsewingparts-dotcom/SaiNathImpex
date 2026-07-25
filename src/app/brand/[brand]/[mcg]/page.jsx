@@ -6,6 +6,29 @@ import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import api from "@/src/utils/api";
 
+function getBrandCode(brandLike, fallbackSlug) {
+  const source = String(brandLike?.name || brandLike?.slug || fallbackSlug || "").trim();
+  const letters = source.replace(/[^A-Za-z]/g, "");
+  if (!letters) return "";
+
+  const first = letters[0].toUpperCase();
+  const consonants = letters.slice(1).split("").filter((char) => !/[AEIOU]/i.test(char));
+  const second = consonants[0]?.toUpperCase() || letters[1]?.toUpperCase() || first;
+  return `${first}${second}`;
+}
+
+function formatGroupLabel(groupCode, brandLike, fallbackSlug) {
+  const normalized = String(groupCode || "").trim().toUpperCase();
+  const brandCode = getBrandCode(brandLike, fallbackSlug);
+  const digitsOnly = normalized.match(/\d{3,8}/)?.[0] || "";
+
+  if (!normalized) return brandCode || "";
+  if (!brandCode) return normalized;
+  if (normalized.startsWith(brandCode)) return normalized;
+  if (digitsOnly && !normalized.includes(brandCode)) return `${brandCode}${digitsOnly}`;
+  return `${brandCode}${normalized}`;
+}
+
 export default function McgPage({ params }) {
   const resolvedParams = use(params);
   const brandSlug = resolvedParams.brand;
@@ -15,6 +38,7 @@ export default function McgPage({ params }) {
   const [parts, setParts]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]     = useState("Sort: Featured");
+  const displayGroupLabel = formatGroupLabel(mcgCode, brand, brandSlug);
 
   useEffect(() => {
     setLoading(true);
@@ -63,13 +87,13 @@ export default function McgPage({ params }) {
               {brand?.name ?? brandSlug.toUpperCase()}
             </Link>
             {" / "}
-            <span className="text-copper">{mcgCode}</span>
+            <span className="text-copper">{displayGroupLabel}</span>
           </nav>
 
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
               <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-copper mb-2">
-                MCG · {mcgCode}
+                Series · {displayGroupLabel}
               </div>
               <h1 className="font-display text-6xl md:text-7xl">
                 {brand?.name ?? brandSlug.toUpperCase()}

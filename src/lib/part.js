@@ -259,8 +259,12 @@ export function buildPartFilter({
   }
 
   // Filter by MCG (Machine Category Group) e.g. "80005"
+  // Support both the explicit MCG field and linked-series codes.
   if (mcg) {
-    filter.MCG = mcg;
+    filter.$or = [
+      { MCG: mcg },
+      { "linkedSeries.series": mcg },
+    ];
   }
 
   // Filter by OEM part number e.g. "205773"

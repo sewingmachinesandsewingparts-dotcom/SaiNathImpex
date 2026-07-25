@@ -7,6 +7,63 @@ import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import api from "@/src/utils/api";
 
+function getBrandCode(brandLike, fallbackSlug) {
+  const source = String(brandLike?.name || brandLike?.slug || fallbackSlug || "").trim();
+  const letters = source.replace(/[^A-Za-z]/g, "");
+  if (!letters) return "";
+
+  const first = letters[0].toUpperCase();
+  const consonants = letters.slice(1).split("").filter((char) => !/[AEIOU]/i.test(char));
+  const second = consonants[0]?.toUpperCase() || letters[1]?.toUpperCase() || first;
+  return `${first}${second}`;
+}
+
+function formatGroupLabel(groupCode, brandLike, fallbackSlug) {
+  const normalized = String(groupCode || "").trim().toUpperCase();
+  const brandCode = getBrandCode(brandLike, fallbackSlug);
+  const digitsOnly = normalized.match(/\d{3,8}/)?.[0] || "";
+
+  if (!normalized) return brandCode || "";
+  if (!brandCode) return normalized;
+  if (normalized.startsWith(brandCode)) return normalized;
+  if (digitsOnly && !normalized.includes(brandCode)) return `${brandCode}${digitsOnly}`;
+  return `${brandCode}${normalized}`;
+}
+
+function extractSeriesCode(part) {
+  const directCandidates = [
+    part?.linkedSeries?.series,
+    part?.series?.code,
+    part?.series?.[0]?.code,
+    part?.MCG,
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  for (const candidate of directCandidates) {
+    const digitsOnly = candidate.match(/\d{3,8}/)?.[0];
+    if (digitsOnly) return digitsOnly;
+  }
+
+  const haystacks = [part?.sku, part?.name, part?.description, part?.diagramNumber, part?.id1, part?.id2, ...(part?.altPartNumbers || [])]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  const match = haystacks
+    .map((value) => value.match(/([A-Za-z]{1,6})(\d{3,8})/))
+    .find(Boolean);
+
+  if (match) {
+    return `${match[2]}`;
+  }
+
+  return "";
+}
+
+function getGroupKey(part) {
+  return extractSeriesCode(part) || part?.MCG || part?.linkedSeries?.series || part?.id1 || part?.OEM || part?.id2 || part?.sku || "";
+}
+
 export default function BrandPage({ params }) {
   const resolvedParams = use(params);
   const brandSlug = resolvedParams.brand;
@@ -56,17 +113,16 @@ export default function BrandPage({ params }) {
     );
   }
 
-  // ── Group parts by the primary part code/series identifier.
-  // Prefer the documented MCG field, but fall back to the current product identifier.
+  // ── Group parts by the series identifier and show a brand-style label like PG80005.
   const groupingMap = {};
   for (const part of parts) {
-    const key = part.MCG || part.id1 || part.OEM || part.id2 || part.sku || "";
+    const key = getGroupKey(part);
     if (!key) continue;
     if (!groupingMap[key]) groupingMap[key] = [];
     groupingMap[key].push(part);
   }
   const groupEntries = Object.entries(groupingMap).sort(([a], [b]) => a.localeCompare(b));
-  const ungrouped = parts.filter((p) => !p.MCG && !p.id1 && !p.OEM && !p.id2 && !p.sku);
+  const ungrouped = parts.filter((p) => !getGroupKey(p));
 
   return (
     <PageShell>
@@ -103,31 +159,34 @@ export default function BrandPage({ params }) {
               Browse by part group
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-14">
-              {groupEntries.map(([groupKey, groupParts]) => (
-                <Link
-                  key={groupKey}
-                  href={`/brand/${brand.slug}/${groupKey}`}
-                  className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-4 flex flex-col gap-1 group"
-                >
-                  <div className="font-display text-2xl tracking-wide">{groupKey}</div>
+              {groupEntries.map(([groupKey, groupParts]) => {
+                const displayLabel = formatGroupLabel(groupKey, brand, brandSlug);
+                return (
+                  <Link
+                    key={groupKey}
+                    href={`/brand/${brand.slug}/${encodeURIComponent(groupKey)}`}
+                    className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-4 flex flex-col gap-1 group"
+                  >
+                    <div className="font-display text-2xl tracking-wide">{displayLabel}</div>
                   <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground group-hover:text-bone/60">
                     {groupParts.length} OEM variant{groupParts.length !== 1 ? "s" : ""}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {groupParts.slice(0, 3).map((p) => {
-                      const previewLabel = p.OEM || p.id2 || p.id1 || p.sku || "";
-                      return (
-                        <span key={previewLabel || p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
-                          {previewLabel}
-                        </span>
-                      );
-                    })}
-                    {groupParts.length > 3 && (
-                      <span className="font-mono text-[9px] opacity-60">+{groupParts.length - 3}</span>
-                    )}
-                  </div>
-                </Link>
-              ))}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {groupParts.slice(0, 3).map((p) => {
+                        const previewLabel = p.OEM || p.id2 || p.id1 || p.sku || "";
+                        return (
+                          <span key={previewLabel || p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
+                            {previewLabel}
+                          </span>
+                        );
+                      })}
+                      {groupParts.length > 3 && (
+                        <span className="font-mono text-[9px] opacity-60">+{groupParts.length - 3}</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </>
         )}
