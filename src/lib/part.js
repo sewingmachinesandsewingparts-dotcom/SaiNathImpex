@@ -262,9 +262,27 @@ export function buildPartFilter({
   // Filter by MCG (Machine Category Group) e.g. "80005"
   // Support both the explicit MCG field and linked-series codes.
   if (mcg) {
+    const normalizedMcg = String(mcg).trim();
+    const upperMcg = normalizedMcg.toUpperCase();
+    const candidates = new Set([normalizedMcg, upperMcg]);
+
+    const prefixedMatch = upperMcg.match(/^([A-Z]{1,6})[-_\s]?([0-9]{3,8})/);
+    if (prefixedMatch) {
+      candidates.add(`${prefixedMatch[1]}-${prefixedMatch[2]}`);
+      candidates.add(`${prefixedMatch[1]}${prefixedMatch[2]}`);
+      candidates.add(prefixedMatch[2]);
+    }
+
+    const digitsMatch = upperMcg.match(/\d{3,8}/);
+    if (digitsMatch) {
+      candidates.add(digitsMatch[0]);
+    }
+
+    const candidateList = Array.from(candidates);
+
     filter.$or = [
-      { MCG: mcg },
-      { "linkedSeries.series": mcg },
+      { MCG: { $in: candidateList } },
+      { "linkedSeries.series": { $in: candidateList } },
     ];
   }
 

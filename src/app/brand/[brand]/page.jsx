@@ -193,14 +193,12 @@ export default function BrandPage({ params }) {
                   </div>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {groupParts.slice(0, 3).map((p) => {
-                        const previewLabels = [p.linkedSeries?.series || p.series?.code || p.id1, p.id1, p.id2, p.OEM, p.sku]
-                          .filter(Boolean)
-                          .map((value) => String(value));
-                        return previewLabels.slice(0, 2).map((label) => (
-                          <span key={`${p.sku}-${label}`} className="font-mono text-[9px] bg-background/20 px-1 rounded">
+                        const label = p.OEM || p.id2 || p.sku;
+                        return label ? (
+                          <span key={p.sku} className="font-mono text-[9px] bg-background/20 px-1 rounded">
                             {label}
                           </span>
-                        ));
+                        ) : null;
                       })}
                       {groupParts.length > 3 && (
                         <span className="font-mono text-[9px] opacity-60">+{groupParts.length - 3}</span>
