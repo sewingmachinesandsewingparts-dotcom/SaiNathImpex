@@ -84,6 +84,20 @@ function normalizeModelAndSeries(modelCode, seriesCode) {
 
 function joinModelAndSeries(modelPart, seriesPart) {
   if (!seriesPart) return modelPart;
+  
+  const mClean = modelPart.replace(/-/g, "").toUpperCase();
+  const sClean = seriesPart.replace(/-/g, "").toUpperCase();
+  
+  // If model and series are the exact same (ignoring dashes), e.g. "PG80005" and "PG-80005"
+  if (mClean === sClean) {
+    return modelPart;
+  }
+  
+  // If model already ends with series (ignoring dashes), e.g. model="PG80005", series="80005"
+  if (mClean.endsWith(sClean)) {
+    return modelPart;
+  }
+
   if (/^\d+$/.test(seriesPart)) {
     return `${modelPart}${seriesPart}`;
   }

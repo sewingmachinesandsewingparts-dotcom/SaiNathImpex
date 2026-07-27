@@ -543,8 +543,9 @@ export default function PartPage({ params }) {
                       {hasSeries &&
                         part.series.map((s) => {
                           const prods = (s.products || [])
-                            .map((p) => (typeof p === "string" ? p : p.sku || p.code || p.name))
-                            .filter(Boolean);
+                            .map((p) => String((typeof p === "string" ? p : p.sku || p.code || p.name) || "").trim())
+                            .filter(Boolean)
+                            .filter((code) => code.toLowerCase() !== String(part.sku).trim().toLowerCase());
                           return (
                             <div key={s.code || s.id} className="hairline p-4 rounded-3xl bg-card space-y-3">
                               <div className="font-mono text-sm uppercase tracking-widest text-copper font-semibold">
@@ -573,31 +574,38 @@ export default function PartPage({ params }) {
                           );
                         })}
 
-                      {hasLinkedSeries && (
-                        <div className="hairline p-4 rounded-3xl bg-card space-y-3">
-                          <div className="font-mono text-sm uppercase tracking-widest text-copper font-semibold">
-                            Series {part.linkedSeries.series}
-                          </div>
-                          {part.linkedSeries.products && part.linkedSeries.products.length > 0 && (
-                            <div>
-                              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                                Products in Series
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {part.linkedSeries.products.map((sku) => (
-                                  <Link
-                                    key={sku}
-                                    href={`/part/${encodeURIComponent(sku)}`}
-                                    className="hairline px-3 py-1.5 text-xs bg-background hover:border-copper transition-colors"
-                                  >
-                                    {sku}
-                                  </Link>
-                                ))}
-                              </div>
+                      {hasLinkedSeries && (() => {
+                        const linkedProds = (part.linkedSeries.products || [])
+                          .map((p) => String((typeof p === "string" ? p : p.sku || p.code || p.name) || "").trim())
+                          .filter(Boolean)
+                          .filter((code) => code.toLowerCase() !== String(part.sku).trim().toLowerCase());
+
+                        return (
+                          <div className="hairline p-4 rounded-3xl bg-card space-y-3">
+                            <div className="font-mono text-sm uppercase tracking-widest text-copper font-semibold">
+                              Series {part.linkedSeries.series}
                             </div>
-                          )}
-                        </div>
-                      )}
+                            {linkedProds.length > 0 && (
+                              <div>
+                                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                                  Products in Series
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {linkedProds.map((skuCode) => (
+                                    <Link
+                                      key={skuCode}
+                                      href={`/part/${encodeURIComponent(skuCode)}`}
+                                      className="hairline px-3 py-1.5 text-xs bg-background hover:border-copper transition-colors"
+                                    >
+                                      {skuCode}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
