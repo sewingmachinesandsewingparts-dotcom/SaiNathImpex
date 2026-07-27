@@ -61,7 +61,7 @@ export function PartCard({ part, span = 1, variant = "default" }) {
             "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=900&q=70"
           }
           alt={part.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 bg-white"
           loading="lazy"
         />
         {onSale && (
