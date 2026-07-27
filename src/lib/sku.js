@@ -145,7 +145,7 @@ export function buildProductName(category, modelCode, seriesCode, iscCode, brand
     seriesCode,
   );
   let codeLabel = normalizeModelCodeForName(normalizedModelPart);
-  const seriesPart = normalizedSeriesPart.trim();
+  let seriesPart = normalizedSeriesPart.trim();
   const iscPart = String(iscCode || "").trim();
   const hasBrandName =
     String(brandName || "")
@@ -164,16 +164,25 @@ export function buildProductName(category, modelCode, seriesCode, iscCode, brand
       // Preserve original casing by trimming from the end
       codeLabel = codeLabel.slice(0, cleaned.length);
     }
+    // Additional check: if series (ignoring dashes) already present in model code, omit it
+    const seriesNoDash = seriesPart.replace(/[-_\s]/g, "").toUpperCase();
+    if (codeLabel.toUpperCase().endsWith(seriesNoDash)) {
+      seriesPart = "";
+    }
   }
 
   if (hasBrandName) {
     const brandLabel = normalizeBrandForName(brandName);
-    return `${brandLabel} ${categoryLabel} ${codeLabel}-${seriesPart}${iscPart ? ` ${iscPart}` : ""}`;
+    const seriesSegment = seriesPart ? `-${seriesPart}` : "";
+    return `${brandLabel} ${categoryLabel} ${codeLabel}${seriesSegment}${iscPart ? ` ${iscPart}` : ""}`;
   }
 
   if (iscPart) {
-    return `${categoryLabel} ${codeLabel}-${seriesPart} ${iscPart}`;
+    const seriesSegment = seriesPart ? `-${seriesPart}` : "";
+    return `${categoryLabel} ${codeLabel}${seriesSegment} ${iscPart}`;
   }
 
-  return `${categoryLabel} for ${codeLabel}-${seriesPart}`;
+  const seriesSegment = seriesPart ? `-${seriesPart}` : "";
+  return `${categoryLabel} for ${codeLabel}${seriesSegment}`;
 }
+
