@@ -284,7 +284,7 @@ export default function Catalog() {
           )}
 
           {/* Pagination */}
-          {!loading && totalPages > 1 && (
+          {!loading && (
             <div className="mt-12 flex items-center justify-center gap-1 font-mono text-[11px] tracking-[0.15em] uppercase">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}

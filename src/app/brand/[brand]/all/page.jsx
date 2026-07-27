@@ -15,6 +15,9 @@ export default function BrandAllPartsPage({ params }) {
   const [sort, setSort] = useState("Sort: Featured");
   const [loading, setLoading] = useState(true);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 14;
+
   useEffect(() => {
     // Load brand details
     api("/api/brands")
@@ -43,6 +46,7 @@ export default function BrandAllPartsPage({ params }) {
       .then((res) => res.data)
       .then((data) => {
         setParts(data || []);
+        setCurrentPage(1);
         setLoading(false);
       })
       .catch((err) => {
@@ -50,6 +54,9 @@ export default function BrandAllPartsPage({ params }) {
         setLoading(false);
       });
   }, [brandSlug, sort]);
+
+  const totalPages = Math.ceil(parts.length / itemsPerPage);
+  const currentParts = parts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <PageShell>
@@ -81,7 +88,7 @@ export default function BrandAllPartsPage({ params }) {
       <div className="mx-auto max-w-7xl px-4 py-10">
         <div className="flex items-center justify-between mb-8">
           <div className="text-sm text-muted-foreground">
-            {loading ? "Loading parts..." : `Showing all ${parts.length} parts`}
+            {loading ? "Loading parts..." : `Showing ${(currentPage - 1) * itemsPerPage + 1}–${Math.min(currentPage * itemsPerPage, parts.length)} of ${parts.length}`}
           </div>
           <select
             className="hairline bg-card px-3 py-2 text-sm outline-none cursor-pointer"
@@ -105,11 +112,57 @@ export default function BrandAllPartsPage({ params }) {
             No parts found for this brand.
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {parts.map((p) => (
-              <PartCard key={p.sku} part={p} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {currentParts.map((p) => (
+                <PartCard key={p.sku} part={p} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="mt-12 flex items-center justify-center gap-1 font-mono text-[11px] tracking-[0.15em] uppercase">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-9 px-3 hairline hover:bg-ink hover:text-bone disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Prev
+                </button>
+                {(() => {
+                  const getPaginationItems = (current, total) => {
+                    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+                    if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+                    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+                    return [1, '...', current - 1, current, current + 1, '...', total];
+                  };
+                  return getPaginationItems(currentPage, totalPages).map((item, index) => {
+                    if (item === '...') {
+                      return (
+                        <span key={`ellipsis-${index}`} className="h-9 px-2 flex items-end justify-center text-muted-foreground tracking-widest">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => setCurrentPage(item)}
+                        className={`h-9 w-9 hairline ${item === currentPage ? "bg-ink text-bone" : "hover:bg-secondary"}`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  });
+                })()}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-9 px-3 hairline hover:bg-ink hover:text-bone disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Next
+                </button>
+              </div>
+          </>
         )}
       </div>
     </PageShell>
