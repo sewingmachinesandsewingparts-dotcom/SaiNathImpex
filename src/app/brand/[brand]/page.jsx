@@ -179,20 +179,30 @@ export default function BrandPage({ params }) {
             <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-copper mb-4">
               Browse by part group
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-14">
               {groupEntries.map(([groupKey, groupParts]) => {
                 const displayLabel = formatGroupLabel(groupKey, brand, brandSlug);
+                const firstPartWithImg = groupParts.find(p => p.images && p.images.length > 0);
+                const imgSrc = firstPartWithImg?.images[0];
+
                 return (
                   <Link
                     key={groupKey}
                     href={`/brand/${brand.slug}/${encodeURIComponent(groupKey)}`}
-                    className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-4 flex flex-col gap-1 group"
+                    className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-5 flex flex-col gap-2 group"
                   >
-                    <div className="font-display text-2xl tracking-wide">{displayLabel}</div>
-                  <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground group-hover:text-bone/60">
-                    {groupParts.length} OEM variant{groupParts.length !== 1 ? "s" : ""}
-                  </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    {imgSrc && (
+                      <div className="w-full aspect-[4/3] bg-white rounded-md overflow-hidden mb-2 border border-border flex items-center justify-center p-2">
+                        <img src={imgSrc} alt="" className="max-w-full max-h-full object-contain" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-display text-2xl tracking-wide">{displayLabel}</div>
+                      <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground group-hover:text-bone/60">
+                        {groupParts.length} OEM variant{groupParts.length !== 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <div className="mt-auto pt-2 flex flex-wrap gap-1">
                       {groupParts.slice(0, 3).map((p) => {
                         const label = p.OEM || p.id2 || p.sku;
                         return label ? (
