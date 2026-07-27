@@ -93,6 +93,7 @@ export default function BrandPage({ params }) {
   const [brand, setBrand]   = useState(null);
   const [parts, setParts]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(4);
 
   useEffect(() => {
     if (brandSlug === "others") {
@@ -223,26 +224,41 @@ export default function BrandPage({ params }) {
         )}
 
         {/* ── All parts (or ungrouped parts) ── */}
-        <h2 className="font-display text-3xl mb-4">
-          All {brand.name} parts
-          {ungrouped.length > 0 && (
-            <span className="font-mono text-base text-muted-foreground ml-3">
-              ({ungrouped.length} without group)
-            </span>
-          )}
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="font-display text-3xl mb-4">
+              All {brand.name} parts
+              {ungrouped.length > 0 && (
+                <span className="font-mono text-base text-muted-foreground ml-3">
+                  ({ungrouped.length} without group)
+                </span>
+              )}
+            </h2>
+            
+            {!loading && visibleCount < parts.length && (
+              <Link
+                href={`/brand/${brandSlug}/all`}
+                className="hairline bg-background hover:bg-copper hover:text-bone hover:border-copper transition-colors px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] shrink-0 mb-4 inline-flex items-center justify-center"
+              >
+                View more ({parts.length - visibleCount} remaining)
+              </Link>
+            )}
+          </div>
+        </div>
 
         {loading ? (
           <div className="text-center font-mono text-xs uppercase text-muted-foreground py-10">
             Updating catalog…
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {parts.length ? (
-              parts.map((p) => <PartCard key={p.sku} part={p} />)
-            ) : (
-              <p className="text-muted-foreground col-span-full">No parts listed yet.</p>
-            )}
+          <div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {parts.length ? (
+                parts.slice(0, visibleCount).map((p) => <PartCard key={p.sku} part={p} />)
+              ) : (
+                <p className="text-muted-foreground col-span-full">No parts listed yet.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
