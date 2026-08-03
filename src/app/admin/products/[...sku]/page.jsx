@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Upload, Save, X } from "lucide-react";
 import { AdminShell } from "@/src/components/admin-shell";
@@ -83,6 +83,158 @@ export default function EditProductPage() {
   const [selectedSeriesProducts, setSelectedSeriesProducts] = useState([]);
   const [newSeriesCode, setNewSeriesCode] = useState("");
   const [newSeriesProductsInput, setNewSeriesProductsInput] = useState("");
+  // Compute sorted series codes for navigation
+  const sortedSeries = useMemo(() => Object.keys(seriesMap).sort(), [seriesMap]);
+  // Handlers to navigate to previous and next series
+  const handlePrevSeries = () => {
+    const idx = sortedSeries.indexOf(selectedSeries);
+    if (idx > 0) {
+      const prev = sortedSeries[idx - 1];
+      setSelectedSeries(prev);
+      setSelectedSeriesProducts(prev ? (seriesMap[prev] || []).map(p => p.sku) : []);
+    }
+  };
+  const handleNextSeries = () => {
+    const idx = sortedSeries.indexOf(selectedSeries);
+    if (idx >= 0 && idx < sortedSeries.length - 1) {
+      const next = sortedSeries[idx + 1];
+      setSelectedSeries(next);
+      setSelectedSeriesProducts(next ? (seriesMap[next] || []).map(p => p.sku) : []);
+    }
+  };
+
+  // Get adjacent series SKU helper to shift/navigate between series pages
+  // Supports SKUs like "PG-80005" (prefix-number), "PEG-NP-PG80013-205244" (alphanumeric segment),
+  // or the existing multi‑segment numeric format.
+  const getAdjacentSeriesSku = (currentSku, direction) => {
+    if (!currentSku) return "";
+    const segments = currentSku.split("-");
+    // Try to find a segment that contains both letters and numbers (e.g., PG80013).
+    let targetIdx = -1;
+    for (let i = 0; i < segments.length; i++) {
+      if (/[A-Za-z]+\d+/.test(segments[i])) {
+        targetIdx = i;
+        break;
+      }
+    }
+    // If none found, fall back to the last numeric segment (previous logic).
+    if (targetIdx === -1) {
+      for (let i = segments.length - 1; i >= 0; i--) {
+        if (/\d+/.test(segments[i])) {
+          targetIdx = i;
+          break;
+        }
+      }
+    }
+    if (targetIdx === -1) return "";
+
+    const segment = segments[targetIdx];
+    const match = segment.match(/(\d+)/);
+    if (!match) return "";
+    const numStr = match[1];
+    const numVal = parseInt(numStr, 10);
+    const newNumVal = numVal + direction;
+    if (newNumVal < 0) return "";
+    const newNumStr = String(newNumVal).padStart(numStr.length, "0");
+    const newSegment = segment.replace(numStr, newNumStr);
+    const newSegments = [...segments];
+    newSegments[targetIdx] = newSegment;
+    return newSegments.join("-");
+  };
+
+  // Helper to compute next/prev MCG value (e.g. "PG-80005" → "PG-80006")
+  const getAdjacentMcg = (currentMcg, direction) => {
+    if (!currentMcg) return "";
+    const match = currentMcg.match(/([A-Za-z]+)-(\d+)/);
+    if (!match) return "";
+    const prefix = match[1];
+    const numStr = match[2];
+    const numVal = parseInt(numStr, 10);
+    const newNumVal = numVal + direction;
+    if (newNumVal < 0) return "";
+    const newNumStr = String(newNumVal).padStart(numStr.length, "0");
+    return `${prefix}-${newNumStr}`;
+  };
+
+  const navigateToPrevSeries = async () => {
+    console.log('Prev button clicked, sku:', sku);
+    // Prefer MCG navigation when MCG present
+    if (product?.MCG) {
+      const prevMcg = getAdjacentMcg(product.MCG, -1);
+      if (prevMcg) {
+        try {
+          const res = await api(`/api/parts?mcg=${encodeURIComponent(prevMcg)}`);
+          const targetSku = res?.data?.[0]?.sku;
+          if (targetSku) {
+            router.push(`/admin/products/${encodeURIComponent(targetSku)}`);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to fetch product by MCG', e);
+        }
+      }
+    }
+    // Fallback to series list navigation
+    const skuList = (selectedSeriesProducts || []).map(p => typeof p === 'string' ? p : p.sku).filter(Boolean);
+    const idxPrev = skuList.indexOf(sku);
+    if (idxPrev > 0) {
+      const prevSku = skuList[idxPrev - 1];
+      router.push(`/admin/products/${encodeURIComponent(prevSku)}`);
+      return;
+    }
+    // Final fallback using generic SKU increment
+    const fallbackPrev = getAdjacentSeriesSku(sku, -1);
+    if (fallbackPrev) {
+      router.push(`/admin/products/${encodeURIComponent(fallbackPrev)}`);
+    } else {
+      console.warn('No previous SKU found');
+    }
+  };
+
+  const navigateToNextSeries = async () => {
+    console.log('Next button clicked, sku:', sku);
+    if (product?.MCG) {
+      const nextMcg = getAdjacentMcg(product.MCG, 1);
+      if (nextMcg) {
+        try {
+          const res = await api(`/api/parts?mcg=${encodeURIComponent(nextMcg)}`);
+          const targetSku = res?.data?.[0]?.sku;
+          if (targetSku) {
+            router.push(`/admin/products/${encodeURIComponent(targetSku)}`);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to fetch product by MCG', e);
+        }
+      }
+    }
+    const skuList = (selectedSeriesProducts || []).map(p => typeof p === 'string' ? p : p.sku).filter(Boolean);
+    const idxNext = skuList.indexOf(sku);
+    if (idxNext !== -1 && idxNext < skuList.length - 1) {
+      const nextSku = skuList[idxNext + 1];
+      router.push(`/admin/products/${encodeURIComponent(nextSku)}`);
+      return;
+    }
+
+
+    const fallbackNext = getAdjacentSeriesSku(sku, 1);
+    if (fallbackNext) {
+      router.push(`/admin/products/${encodeURIComponent(fallbackNext)}`);
+    } else {
+      console.warn('No next SKU found');
+    }
+  };
+
+  const currentSeriesCode = useMemo(() => {
+    if (!sku) return "";
+    const segments = sku.split("-");
+    for (let i = 2; i < segments.length; i++) {
+      if (/\d+/.test(segments[i])) {
+        return segments[i];
+      }
+    }
+    return "";
+  }, [sku]);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -391,6 +543,28 @@ export default function EditProductPage() {
 
   return (
     <AdminShell title="Edit product" subtitle={`Update ${product.name}`}>
+      <div className="flex justify-between items-center bg-card p-4 hairline mb-6 rounded">
+        <div className="flex items-center space-x-3">
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Series:</span>
+          <span className="font-mono font-bold text-copper text-sm bg-secondary px-2 py-1 rounded">{currentSeriesCode || "None"}</span>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            onClick={navigateToPrevSeries}
+            className="px-4 py-2 bg-ink text-bone font-mono text-xs uppercase tracking-wider rounded hover:bg-copper transition-all hover:scale-105 flex items-center gap-1 cursor-pointer"
+          >
+            ← Prev Series
+          </button>
+          <button
+            type="button"
+            onClick={navigateToNextSeries}
+            className="px-4 py-2 bg-ink text-bone font-mono text-xs uppercase tracking-wider rounded hover:bg-copper transition-all hover:scale-105 flex items-center gap-1 cursor-pointer"
+          >
+            Next Series →
+          </button>
+        </div>
+      </div>
       <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
         <input
           type="hidden"
@@ -777,6 +951,14 @@ export default function EditProductPage() {
                       </option>
                     ))}
                   </select>
+                  <div className="flex space-x-2 mt-1">
+                    <button type="button" onClick={handlePrevSeries} className="px-3 py-1 bg-ink text-bone rounded hover:bg-copper">
+                      Prev Series
+                    </button>
+                    <button type="button" onClick={handleNextSeries} className="px-3 py-1 bg-ink text-bone rounded hover:bg-copper">
+                      Next Series
+                    </button>
+                  </div>
                 </label>
 
                 <div>

@@ -86,7 +86,6 @@ const partSchema = new mongoose.Schema(
 
     // ======================================================
     // CROSS REFERENCES
-    // ======================================================
     crossReferences: [
       {
         number: { type: String },
