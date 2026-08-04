@@ -511,7 +511,7 @@ export default function EditProductPage() {
       });
 
       setStatusMessage("Product updated successfully.");
-      setTimeout(() => router.push("/admin/products"), 1500);
+      setTimeout(() => router.push(`/admin/products/${encodeURIComponent(generatedSku)}`), 1500);
     } catch (error) {
       console.error(error);
       const serverMsg = error.response?.data?.error || error.response?.data?.message;
