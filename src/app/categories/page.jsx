@@ -5,34 +5,96 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/src/components/site-shell";
 import api from "@/src/utils/api";
 
+function canonicalCategory(str) {
+  const text = String(str || "").trim();
+  const lower = text.toLowerCase();
+
+  if (lower.includes("needle plate")) return { name: "Needle Plate", slug: "NeedlePlate" };
+  if (lower.includes("looper")) return { name: "Looper", slug: "Looper" };
+  if (lower.includes("feed dog")) return { name: "Feed Dog", slug: "FeedDog" };
+  if (lower.includes("presser foot") || lower.includes("presser feet")) return { name: "Presser Foot", slug: "PresserFoot" };
+  if (lower.includes("tension")) return { name: "Tension Assembly", slug: "TensionAssembly" };
+  if (lower.includes("thread stand")) return { name: "Thread Stand", slug: "ThreadStand" };
+
+  let normalized = text;
+  if (/s$/i.test(normalized) && !/ss$/i.test(normalized)) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  const words = normalized
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+  const cleanName = words.join(" ");
+  const cleanSlug = words.join("");
+  return { name: cleanName || "General Parts", slug: cleanSlug || "GeneralParts" };
+}
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
+    const loadCategories = async () => {
+      setLoading(true);
       try {
-        const res = await api("/api/brands");
-        const data = res.data || [];
-        const others = data.find((b) => b.slug === "others");
-        if (others && Array.isArray(others.models) && others.models.length > 0) {
-          setCategories(others.models);
-          return;
+        const partsRes = await api("/api/parts");
+        const parts = partsRes.data || [];
+
+        const map = {};
+
+        for (const p of parts) {
+          const rootName = (p.categoryRoot || p.modelName || p.taxonomy?.category || "").trim();
+          if (!rootName) continue;
+
+          const { name: categoryName, slug } = canonicalCategory(rootName);
+
+          if (!map[slug]) {
+            map[slug] = {
+              slug,
+              categoryName,
+              images: [],
+            };
+          }
+
+          if (Array.isArray(p.images) && p.images.length > 0) {
+            for (const img of p.images) {
+              if (img) map[slug].images.push(img);
+            }
+          }
         }
 
-        // Fallback: derive from parts
-        const partsRes = await api("/api/parts?brand=Others");
-        const parts = partsRes.data || [];
-        const uniq = {};
-        parts.forEach((p) => {
-          if (p.modelSlug) uniq[p.modelSlug] = p.modelName || p.modelSlug;
+        // Fallback if no parts returned
+        if (Object.keys(map).length === 0) {
+          map["NeedlePlate"] = {
+            slug: "NeedlePlate",
+            categoryName: "Needle Plate",
+            images: ["https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=900&q=70"],
+          };
+        }
+
+        const resultList = Object.values(map).map((cat) => {
+          const randomImage = cat.images.length > 0
+            ? cat.images[Math.floor(Math.random() * cat.images.length)]
+            : "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=900&q=70";
+
+          return {
+            ...cat,
+            randomImage,
+          };
         });
-        setCategories(Object.keys(uniq).map((k) => ({ slug: k, name: uniq[k] })));
+
+        setCategories(resultList);
       } catch (err) {
         console.error("Error loading categories:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    load();
+    loadCategories();
   }, []);
 
   return (
@@ -44,20 +106,42 @@ export default function CategoriesPage() {
           </Link>{" "}
           / Categories
         </nav>
-        <div className="hairline bg-card p-6">
-          <h1 className="font-display text-4xl">Categories</h1>
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {categories.map((c) => (
+
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-copper mb-2">
+              Browse Categories
+            </div>
+            <h1 className="font-display text-5xl md:text-6xl">Categories</h1>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground py-20">
+            Loading categories…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-14">
+            {categories.map((cat) => (
               <Link
-                key={c.slug}
-                href={`/category/${encodeURIComponent(c.slug)}`}
-                className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-4 flex flex-col gap-1"
+                key={cat.slug}
+                href={`/categories/${cat.slug}`}
+                className="hairline bg-card hover:bg-ink hover:text-bone transition-colors p-5 flex flex-col gap-2 group"
               >
-                <div className="font-display text-2xl">{c.name}</div>
+                <div className="w-full aspect-[4/3] bg-white rounded-md overflow-hidden mb-2 border border-border flex items-center justify-center p-2">
+                  <img
+                    src={cat.randomImage}
+                    alt={cat.categoryName}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <div className="font-display text-2xl tracking-wide">{cat.categoryName}</div>
+                </div>
               </Link>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </PageShell>
   );

@@ -303,7 +303,13 @@ export function buildPartFilter({
   }
 
   if (brand) {
-    filter.brandSlug = { $in: parseList(brand) };
+    const list = parseList(brand);
+    const regexes = list.map((b) => new RegExp(`^${escapeRegExp(b)}$`, "i"));
+    filter.$or = filter.$or || [];
+    filter.$or.push(
+      { brandSlug: { $in: list } },
+      { brandName: { $in: regexes } }
+    );
   }
 
   // Filter by model slug (used on /brand/[brand]/[model] pages)
@@ -313,7 +319,20 @@ export function buildPartFilter({
 
   // Filter by category root slug (used on /categories pages, not brand-model pages)
   if (category) {
-    filter.categoryRootSlug = { $in: parseList(category) };
+    const list = parseList(category);
+    const spacedList = list.flatMap((c) => [c, c.replace(/([a-z])([A-Z])/g, "$1 $2"), c.replace(/[-_]/g, " ")]);
+    const regexes = spacedList.flatMap((c) => [
+      new RegExp(`^${escapeRegExp(c)}$`, "i"),
+      new RegExp(`^${escapeRegExp(c)}s$`, "i"),
+      new RegExp(`^${escapeRegExp(c.replace(/s$/i, ""))}$`, "i"),
+    ]);
+    filter.$or = filter.$or || [];
+    filter.$or.push(
+      { categoryRootSlug: { $in: list } },
+      { categoryRoot: { $in: regexes } },
+      { modelSlug: { $in: list } },
+      { modelName: { $in: regexes } }
+    );
   }
 
   // Filter by list of specific SKUs (used to fetch only cart items)
