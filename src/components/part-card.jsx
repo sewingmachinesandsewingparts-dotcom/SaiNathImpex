@@ -29,7 +29,7 @@ export const formatINR = (n) =>
  */
 export function PartCard({ part, span = 1, variant = "default" }) {
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
-  const onSale = part.compareAt && part.compareAt > part.price;
+  const onSale = !!part.compareAt && part.compareAt > part.price;
   const wishlisted = isInWishlist(part.sku);
   const isDark = variant === "dark";
 

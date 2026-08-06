@@ -232,10 +232,12 @@ export function buildPartFilter({
   nameOnly,
 }) {
   const filter = {};
+  const andConditions = [];
+
   if (q) {
     const escapedSearch = escapeRegExp(q);
     const searchRegex = new RegExp(escapedSearch, "i");
-    filter.$or = [
+    const qOr = [
       { name: searchRegex },
       { sku: searchRegex },
       { MCG: searchRegex },
@@ -247,20 +249,20 @@ export function buildPartFilter({
     ];
 
     if (!nameOnly) {
-      filter.$or.push(
+      qOr.push(
         { description: searchRegex },
         { brandName: searchRegex },
         { modelName: searchRegex },
         { brandSlug: searchRegex },
         { modelSlug: searchRegex },
         { "compat.machineModels": searchRegex },
-        { "compat.stitchType": searchRegex },
+        { "compat.stitchType": searchRegex }
       );
     }
+    andConditions.push({ $or: qOr });
   }
 
   // Filter by MCG (Machine Category Group) e.g. "80005"
-  // Support both the explicit MCG field and linked-series codes.
   if (mcg) {
     const normalizedMcg = String(mcg).trim();
     const upperMcg = normalizedMcg.toUpperCase();
@@ -279,21 +281,19 @@ export function buildPartFilter({
     }
 
     const candidateList = Array.from(candidates);
-
-    // Escape candidates for regex matching against SKU
     const skuRegex = new RegExp(candidateList.map(escapeRegExp).join("|"), "i");
 
-    filter.$or = [
-      { MCG: { $in: candidateList } },
-      { "linkedSeries.series": { $in: candidateList } },
-      { sku: skuRegex },
-      { id1: { $in: candidateList } },
-    ];
+    andConditions.push({
+      $or: [
+        { MCG: { $in: candidateList } },
+        { "linkedSeries.series": { $in: candidateList } },
+        { sku: skuRegex },
+        { id1: { $in: candidateList } },
+      ],
+    });
 
-    // Explicitly exclude anomalous SKUs that the user identified for the 80005 series
     if (upperMcg.includes("80005")) {
-      filter.$and = filter.$and || [];
-      filter.$and.push({ sku: { $not: /OVERLOCK-GLV|(NP){2,}/i } });
+      andConditions.push({ sku: { $not: /OVERLOCK-GLV|(NP){2,}/i } });
     }
   }
 
@@ -303,7 +303,17 @@ export function buildPartFilter({
   }
 
   if (brand) {
-    filter.brandSlug = { $in: parseList(brand) };
+    const list = parseList(brand);
+    const regexes = list.map((b) => new RegExp(`^${escapeRegExp(b)}$`, "i"));
+    const brandRegexes = list.map((b) => new RegExp(escapeRegExp(b), "i"));
+    andConditions.push({
+      $or: [
+        { brandSlug: { $in: list } },
+        { brandName: { $in: regexes } },
+        { sku: { $in: brandRegexes } },
+        { "compat.machineModels": { $in: brandRegexes } },
+      ],
+    });
   }
 
   // Filter by model slug (used on /brand/[brand]/[model] pages)
@@ -313,7 +323,23 @@ export function buildPartFilter({
 
   // Filter by category root slug (used on /categories pages, not brand-model pages)
   if (category) {
-    filter.categoryRootSlug = { $in: parseList(category) };
+    const list = parseList(category);
+    const spacedList = list.flatMap((c) => [c, c.replace(/([a-z])([A-Z])/g, "$1 $2"), c.replace(/[-_]/g, " ")]);
+    const regexes = spacedList.flatMap((c) => [
+      new RegExp(`^${escapeRegExp(c)}$`, "i"),
+      new RegExp(`^${escapeRegExp(c)}s$`, "i"),
+      new RegExp(`^${escapeRegExp(c.replace(/s$/i, ""))}$`, "i"),
+      new RegExp(escapeRegExp(c), "i"),
+    ]);
+    andConditions.push({
+      $or: [
+        { categoryRootSlug: { $in: list } },
+        { categoryRoot: { $in: regexes } },
+        { modelSlug: { $in: list } },
+        { modelName: { $in: regexes } },
+        { name: { $in: regexes } },
+      ],
+    });
   }
 
   // Filter by list of specific SKUs (used to fetch only cart items)
@@ -338,6 +364,10 @@ export function buildPartFilter({
   if (onSale === "true") {
     filter.compareAt = { $exists: true, $ne: null };
     filter.$expr = { $gt: ["$compareAt", "$price"] };
+  }
+
+  if (andConditions.length > 0) {
+    filter.$and = andConditions;
   }
 
   return filter;
