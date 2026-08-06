@@ -101,45 +101,6 @@ export default function BrandPage({ params }) {
   const groupsPerPage = 40; // groups per page
   const goToPage = (page) => setCurrentPage(Math.max(1, page));
 
-  // Pagination for parts list (40 items per page)
-  const [partsPage, setPartsPage] = useState(1);
-  const itemsPerPage = 40;
-  const totalPartsPages = Math.ceil(parts.length / itemsPerPage);
-  const goToPartsPage = (page) => setPartsPage(Math.max(1, Math.min(page, totalPartsPages)));
-  const displayedParts = parts.slice((partsPage - 1) * itemsPerPage, partsPage * itemsPerPage);
-
-  // Helper to render parts pagination controls
-  const renderPartsPagination = () => {
-    if (totalPartsPages <= 1) return null;
-    const pages = [];
-    const cur = partsPage;
-    const total = totalPartsPages;
-    const range = (start, end) => { for (let i = start; i <= end; i++) pages.push(i); };
-    if (total <= 7) {
-      range(1, total);
-    } else {
-      range(1, 2);
-      if (cur > 4) pages.push('...');
-      const start = Math.max(3, cur - 1);
-      const end = Math.min(total - 2, cur + 1);
-      range(start, end);
-      if (cur < total - 3) pages.push('...');
-      range(total - 1, total);
-    }
-    return (
-      <div className="flex justify-center items-center gap-2 mt-4">
-        <button onClick={() => goToPartsPage(partsPage - 1)} disabled={partsPage === 1} className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50">Prev</button>
-        {pages.map((p, idx) =>
-          p === '...' ? (
-            <span key={`ellipsis-${idx}`} className="px-2">...</span>
-          ) : (
-            <button key={p} onClick={() => goToPartsPage(p)} disabled={p === cur} className={`pagination-button px-2 py-1 rounded ${p === cur ? 'active' : ''}`}>{p}</button>
-          )
-        )}
-        <button onClick={() => goToPartsPage(partsPage + 1)} disabled={partsPage === totalPartsPages} className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50">Next</button>
-      </div>
-    );
-  };
 
   // Data loading effect (unconditional, runs before any early returns)
   useEffect(() => {
@@ -348,12 +309,10 @@ export default function BrandPage({ params }) {
           <div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {parts.length ? (
-                displayedParts.map((p) => <PartCard key={p.sku} part={p} />)
+                parts.slice(0, visibleCount).map((p) => <PartCard key={p.sku} part={p} />)
               ) : (
                 <p className="text-muted-foreground col-span-full">No parts listed yet.</p>
               )}
-              {/* Parts pagination controls */}
-              {renderPartsPagination()}
             </div>
           </div>
         )}
