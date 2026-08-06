@@ -17,6 +17,25 @@ export default function AdminProducts() {
   const [brandFilter, setBrandFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const itemsPerPage = 14;
+  const [currentPage, setCurrentPage] = useState(1);
+
+
+  // Reset to page 1 when the full list changes (e.g., after filtering)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [parts]);
+
+  const totalPages = Math.ceil(parts.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const displayedParts = parts.slice(startIdx, endIdx);
+
+  const goToPage = (page) => {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    setCurrentPage(page);
+  };
 
   const loadParts = async ({ q, brand, category, nameOnly } = {}) => {
     try {
@@ -191,46 +210,66 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {parts.map((p) => (
-                <tr key={p.sku} className="border-t border-border hover:bg-secondary/30">
-                  <td className="px-6 py-3 flex items-center gap-3">
-                    <img
-                      src={p.images?.[0] || ""}
-                      alt=""
-                      className="h-10 w-10 object-cover hairline shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <div className="font-display text-lg truncate">{p.name}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">{p.id1}</div>
-                    </div>
-                  </td>
-                  <td className="font-mono text-xs">{p.sku}</td>
-                  <td>{p.brandName}</td>
-                  <td className="font-mono">{formatINR(p.price)}</td>
-                  <td>
-                    <span className={`font-mono text-xs ${p.stock < 25 ? "text-destructive" : ""}`}>
-                      {p.stock}
-                    </span>
-                  </td>
-                  <td className="font-mono text-xs">{p.rating} ★</td>
-                  <td className="px-6 py-3 flex items-center gap-2">
-                    <Link
-                      href={`/admin/products/${p.sku}`}
-                      className="h-8 w-8 inline-flex items-center justify-center hover:bg-copper/20 text-copper transition-colors"
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(p.sku)}
-                      className="h-8 w-8 inline-flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+          {displayedParts.map((p) => (
+            <tr key={p.sku} className="border-t border-border hover:bg-secondary/30">
+              <td className="px-6 py-3 flex items-center gap-3">
+                <img
+                  src={p.images?.[0] || ""}
+                  alt=""
+                  className="h-10 w-10 object-cover hairline shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="font-display text-lg truncate">{p.name}</div>
+                  <div className="font-mono text-[10px] text-muted-foreground">{p.id1}</div>
+                </div>
+              </td>
+              <td className="font-mono text-xs">{p.sku}</td>
+              <td>{p.brandName}</td>
+              <td className="font-mono">{formatINR(p.price)}</td>
+              <td>
+                <span className={`font-mono text-xs ${p.stock < 25 ? "text-destructive" : ""}`}> {p.stock} </span>
+              </td>
+              <td className="font-mono text-xs">{p.rating} ★</td>
+              <td className="px-6 py-3 flex items-center gap-2">
+                <Link
+                  href={`/admin/products/${p.sku}`}
+                  className="h-8 w-8 inline-flex items-center justify-center hover:bg-copper/20 text-copper transition-colors"
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
+                </Link>
+                <button
+                  onClick={() => handleDelete(p.sku)}
+                  className="h-8 w-8 inline-flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <tr>
+              <td colSpan={7} className="px-6 py-3 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <span className="font-mono">Page {currentPage} of {totalPages}</span>
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </td>
+            </tr>
+          )}
             </tbody>
           </table>
         </div>

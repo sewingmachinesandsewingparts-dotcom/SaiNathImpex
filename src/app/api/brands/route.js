@@ -4,7 +4,10 @@ import { jsonResponse, badRequest, notFound, errorResponse, parseSearchParam } f
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
 export async function GET() {
-  await connectMongo();
+  const dbConn = await connectMongo();
+  if (!dbConn) {
+    return jsonResponse([], 200, { "Cache-Control": "public, max-age=60", "X-Fallback": "mongo-unavailable" });
+  }
 
   try {
     const brands = await Brand.find({}).lean();

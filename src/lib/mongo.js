@@ -14,30 +14,46 @@ async function connectMongo() {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(MONGODB_URI, {
+  // Helper to try connecting to a given MongoDB URI
+  const tryConnect = async (uri) => {
+    try {
+      const conn = await mongoose.connect(uri, {
         dbName: "stitch-parts-finder",
         serverSelectionTimeoutMS: 5000,
         bufferCommands: false,
-      })
-      .then((mongooseInstance) => mongooseInstance)
-      .catch((error) => {
-        console.error("MongoDB connection failed:", error.message);
-        cached.promise = null;
-        throw error;
       });
+      console.info(`MongoDB connected to ${uri}`);
+      return conn;
+    } catch (err) {
+      console.warn(`MongoDB connection attempt to ${uri} failed: ${err.message}`);
+      return null;
+    }
+  };
+
+  // First try primary (Atlas) URI, then fallback to local instance
+  const primaryConn = await tryConnect(MONGODB_URI);
+  if (primaryConn) {
+    cached.conn = primaryConn;
+    cached.promise = Promise.resolve(primaryConn);
+    return primaryConn;
   }
 
-  try {
-    cached.conn = await cached.promise;
-    return cached.conn;
-  } catch (error) {
-    cached.conn = null;
-    cached.promise = null;
-    throw error;
+  const fallbackConn = await tryConnect(DEFAULT_MONGODB_URI);
+  if (fallbackConn) {
+    cached.conn = fallbackConn;
+    cached.promise = Promise.resolve(fallbackConn);
+    return fallbackConn;
   }
+
+  console.error("Both MongoDB connection attempts failed.");
+  cached.promise = null;
+  return null;
 }
 
-export { MONGODB_URI };
+async function isMongoConnected() {
+  const conn = await connectMongo();
+  return !!conn;
+}
+
+export { MONGODB_URI, isMongoConnected };
 export default connectMongo;

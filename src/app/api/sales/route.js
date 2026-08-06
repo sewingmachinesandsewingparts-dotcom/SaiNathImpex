@@ -14,7 +14,10 @@ async function getNextSaleId() {
 }
 
 export async function GET() {
-  await connectMongo();
+  const dbConn = await connectMongo();
+  if (!dbConn) {
+    return errorResponse("Database connection unavailable", 500);
+  }
 
   try {
     const sales = await Sale.find({});

@@ -5,7 +5,10 @@ import { jsonResponse, badRequest, errorResponse, safeString } from "@/src/lib/a
 import { getActorFromRequest, canAccessAdminModule } from "@/src/lib/admin-auth";
 
 export async function GET(request) {
-  await connectMongo();
+  const dbConn = await connectMongo();
+  if (!dbConn) {
+    return errorResponse("Database connection unavailable", 500);
+  }
 
   try {
     const { searchParams } = new URL(request.url);
