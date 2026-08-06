@@ -57,6 +57,8 @@ export default function DynamicCategoryPage({ params }) {
 
   // States for list views
   const [parts, setParts] = useState([]);
+  const [allCategoryParts, setAllCategoryParts] = useState([]);
+  const [allBrandsList, setAllBrandsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Pagination for Category parts list (40 items per page)
@@ -94,15 +96,30 @@ export default function DynamicCategoryPage({ params }) {
             .finally(() => setLoading(false));
         });
     } else {
-      // Load parts for Category / Category+Brand list view
-      let url = `/api/parts?category=${encodeURIComponent(categorySlug)}`;
-      if (brandSlug) {
-        url += `&brand=${encodeURIComponent(brandSlug)}`;
-      }
+      // Fetch both full category parts and brand list so brand pills ALWAYS stay visible
+      Promise.all([
+        api(`/api/parts?category=${encodeURIComponent(categorySlug)}`),
+        api("/api/brands").catch(() => ({ data: [] })),
+      ])
+        .then(([catRes, brandsRes]) => {
+          const catParts = catRes.data || [];
+          const bList = brandsRes.data || [];
+          setAllCategoryParts(catParts);
+          setAllBrandsList(bList);
 
-      api(url)
-        .then((res) => {
-          setParts(res.data || []);
+          // Now filter parts for display if brandSlug is selected
+          let filteredParts = catParts;
+          if (brandSlug) {
+            const bLower = brandSlug.toLowerCase();
+            filteredParts = catParts.filter((p) => {
+              const bName = (p.brandName || "").toLowerCase();
+              const bSlug = (p.brandSlug || "").toLowerCase();
+              const sku = (p.sku || "").toLowerCase();
+              const compat = (p.compat?.machineModels || []).join(" ").toLowerCase();
+              return bSlug === bLower || bName === bLower || sku.includes(bLower) || compat.includes(bLower);
+            });
+          }
+          setParts(filteredParts);
         })
         .catch((err) => console.error("Error loading category parts:", err))
         .finally(() => setLoading(false));
@@ -280,8 +297,14 @@ export default function DynamicCategoryPage({ params }) {
   // -------------------------------------------------------------
   // RENDER: Category List View (1 or 2 segments: /categories/NeedlePlate or /categories/NeedlePlate/Kingtex)
   // -------------------------------------------------------------
+  // Construct available brands from all brands API and all parts in category
   const availableBrandsMap = {};
-  for (const p of parts) {
+  for (const b of allBrandsList) {
+    if (b.slug && b.name && b.slug !== "others") {
+      availableBrandsMap[b.slug] = b.name;
+    }
+  }
+  for (const p of allCategoryParts) {
     const bName = p.brandName || "Kingtex";
     const bSlug = p.brandSlug || bName;
     availableBrandsMap[bSlug] = bName;
@@ -323,7 +346,7 @@ export default function DynamicCategoryPage({ params }) {
           </div>
         </div>
 
-        {/* Brand Filter Pills */}
+        {/* Brand Filter Pills - Always stay visible whether selected or not */}
         {availableBrands.length > 0 && (
           <div className="mb-8 flex flex-wrap items-center gap-2 pt-2 border-t border-border">
             <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mr-2">
