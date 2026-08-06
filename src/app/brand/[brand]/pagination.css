@@ -1,9 +1,11 @@
-/* Pagination button animation and styling */
+/* Pagination styles for brand group pagination */
 .pagination-button {
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--foreground);
   transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
   cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
 }
 
 .pagination-button:hover {
@@ -12,9 +14,7 @@
   transform: scale(1.07);
 }
 
-/* Pagination info text */
-.pagination-info {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
+.pagination-button.active {
+  background-color: rgba(255, 140, 0, 0.9);
+  color: #fff;
 }

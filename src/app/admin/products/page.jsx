@@ -7,6 +7,7 @@ import { formatINR } from "@/src/lib/format";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/src/utils/api";
+import "./pagination.css";
 
 export default function AdminProducts() {
   const [parts, setParts] = useState([]);
@@ -252,21 +253,54 @@ export default function AdminProducts() {
           {totalPages > 1 && (
             <tr>
               <td colSpan={7} className="px-6 py-3 flex justify-center items-center gap-2">
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <span className="font-mono">Page {currentPage} of {totalPages}</span>
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
-                >
-                  Next
-                </button>
+                <td colSpan={7} className="px-6 py-3 flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  {/* Page numbers */}
+                  {(() => {
+                    const pages = [];
+                    const total = totalPages;
+                    const cur = currentPage;
+                    const range = (start, end) => {
+                      for (let i = start; i <= end; i++) pages.push(i);
+                    };
+                    if (total <= 7) {
+                      range(1, total);
+                    } else {
+                      range(1, 2);
+                      if (cur > 4) pages.push('...');
+                      const start = Math.max(3, cur - 1);
+                      const end = Math.min(total - 2, cur + 1);
+                      range(start, end);
+                      if (cur < total - 3) pages.push('...');
+                      range(total - 1, total);
+                    }
+                    return pages.map((p, idx) => (
+                      p === '...'
+                        ? <span key={`ellipsis-${idx}`} className="px-2">...</span>
+                        : <button
+                            key={p}
+                            onClick={() => goToPage(p)}
+                            disabled={p === cur}
+                            className={`pagination-button px-2 py-1 rounded ${p === cur ? 'active' : ''}`}
+                          >
+                            {p}
+                          </button>
+                    ));
+                  })()}
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </td>
               </td>
             </tr>
           )}

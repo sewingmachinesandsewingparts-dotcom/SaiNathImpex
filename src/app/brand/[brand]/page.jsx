@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
 import { PartCard } from "@/src/components/part-card";
 import api from "@/src/utils/api";
+import "./pagination.css";
 
 function getBrandCode(brandLike, fallbackSlug) {
   const source = String(brandLike?.name || brandLike?.slug || fallbackSlug || "").trim();
@@ -95,6 +96,11 @@ export default function BrandPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(4);
 
+  // Pagination state for group entries (now defined before any early returns)
+  const [currentPage, setCurrentPage] = useState(1);
+  const groupsPerPage = 12; // groups per page
+  const goToPage = (page) => setCurrentPage(Math.max(1, page));
+  // Data loading effect (unconditional, runs before any early returns)
   useEffect(() => {
     if (brandSlug === "others") {
       router.replace("/categories");
@@ -115,6 +121,7 @@ export default function BrandPage({ params }) {
       .finally(() => setLoading(false));
   }, [brandSlug]);
 
+  
   if (loading && !brand) {
     return (
       <PageShell>
@@ -145,6 +152,10 @@ export default function BrandPage({ params }) {
   }
   const groupEntries = Object.entries(groupingMap).sort(([a], [b]) => a.localeCompare(b));
   const ungrouped = parts.filter((p) => !getGroupKey(p));
+
+  // Compute pagination values after grouping
+  const totalGroupPages = Math.ceil(groupEntries.length / groupsPerPage);
+  const displayedGroupEntries = groupEntries.slice((currentPage - 1) * groupsPerPage, currentPage * groupsPerPage);
 
   return (
     <PageShell>
@@ -181,7 +192,7 @@ export default function BrandPage({ params }) {
               Browse by part group
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-14">
-              {groupEntries.map(([groupKey, groupParts]) => {
+              {displayedGroupEntries.map(([groupKey, groupParts]) => {
                 const displayLabel = formatGroupLabel(groupKey, brand, brandSlug);
                 const firstPartWithImg = groupParts.find(p => p.images && p.images.length > 0);
                 const imgSrc = firstPartWithImg?.images[0];
@@ -220,6 +231,48 @@ export default function BrandPage({ params }) {
                 );
               })}
             </div>
+            {/* Pagination controls for groups */}
+            {totalGroupPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                >Prev</button>
+                {(() => {
+                  const pages = [];
+                  const total = totalGroupPages;
+                  const cur = currentPage;
+                  const range = (start, end) => { for (let i = start; i <= end; i++) pages.push(i); };
+                  if (total <= 7) {
+                    range(1, total);
+                  } else {
+                    range(1, 2);
+                    if (cur > 4) pages.push('...');
+                    const start = Math.max(3, cur - 1);
+                    const end = Math.min(total - 2, cur + 1);
+                    range(start, end);
+                    if (cur < total - 3) pages.push('...');
+                    range(total - 1, total);
+                  }
+                  return pages.map((p, idx) =>
+                    p === '...'
+                      ? <span key={`ellipsis-${idx}`} className="px-2">...</span>
+                      : <button
+                          key={p}
+                          onClick={() => goToPage(p)}
+                          disabled={p === cur}
+                          className={`pagination-button px-2 py-1 rounded ${p === cur ? 'active' : ''}`}
+                        >{p}</button>
+                  );
+                })()}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalGroupPages}
+                  className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
+                >Next</button>
+              </div>
+            )}
           </>
         )}
 
