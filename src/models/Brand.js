@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const modelSchema = new mongoose.Schema({
   slug: { type: String, required: true },
-  name: { type: String, required: true },
+  specs: { type: mongoose.Schema.Types.Mixed, default: {} },
   partsCount: { type: Number, default: 0 },
 });
 

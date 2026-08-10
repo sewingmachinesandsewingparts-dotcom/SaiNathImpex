@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PageShell } from "@/src/components/site-shell";
+import HorizontalSalesSpotlight from "@/src/components/ui/horizontal-sales-spotlight";
 
 export default function OffersPage() {
   return (
@@ -13,12 +14,7 @@ export default function OffersPage() {
           </Link>{" "}
           / Offers
         </nav>
-        <div className="hairline bg-card p-8">
-          <h1 className="font-display text-5xl">Deals & offers</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Promotions and coupon route shell added.
-          </p>
-        </div>
+        <SalesSpotlight />
       </div>
     </PageShell>
   );

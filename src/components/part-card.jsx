@@ -57,6 +57,7 @@ export function PartCard({ part, span = 1, variant = "default" }) {
       >
         <img
           src={
+            part.gallery?.[0]?.url ||
             part.images?.[0] ||
             "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=900&q=70"
           }
