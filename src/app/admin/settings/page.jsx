@@ -12,6 +12,10 @@ export default function AdminSettings() {
   const [expandedSpecs, setExpandedSpecs] = useState(new Set());
   const [expandedBrands, setExpandedBrands] = useState(new Set());
   const [brandError, setBrandError] = useState("");
+  // No reset needed; expandedBrands persists
+
+  // Existing states remain unchanged
+
 
   useEffect(() => {
     const loadBrands = async () => {
@@ -145,29 +149,27 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
-                      {brand.models?.length > 5 && (
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
                         <button
                           type="button"
-                          className="text-copper underline"
-                          onClick={() => {
-                            const newSet = new Set(expandedBrands);
+                          className="px-2 py-1 bg-copper text-bone rounded-md text-xs"
+                          onClick={() => setExpandedBrands(prev => {
+                            const newSet = new Set(prev);
                             if (newSet.has(brand.slug)) {
                               newSet.delete(brand.slug);
                             } else {
                               newSet.add(brand.slug);
                             }
-                            setExpandedBrands(newSet);
-                          }}
+                            return newSet;
+                          })}
                         >
                           {expandedBrands.has(brand.slug) ? "Show less" : "Show more"}
                         </button>
-                      )}
-                    </div>
+                      </div>
                     {brand.models?.length > 0 ? (
                       <div className="space-y-2">
-                        {(expandedBrands.has(brand.slug) ? brand.models : brand.models.slice(0, 5)).map((model) => (
+                        {(expandedBrands.has(brand.slug) ? brand.models : brand.models.slice(0, 4)).map((model) => (
                           <div
                             key={model.slug}
                             className="flex items-center justify-between gap-4 p-3 bg-background rounded-md border border-border"
