@@ -10,6 +10,7 @@ export default function AdminSettings() {
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [deletingSlug, setDeletingSlug] = useState("");
   const [expandedSpecs, setExpandedSpecs] = useState(new Set());
+  const [expandedBrands, setExpandedBrands] = useState(new Set());
   const [brandError, setBrandError] = useState("");
 
   useEffect(() => {
@@ -144,10 +145,29 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
+                      {brand.models?.length > 5 && (
+                        <button
+                          type="button"
+                          className="text-copper underline"
+                          onClick={() => {
+                            const newSet = new Set(expandedBrands);
+                            if (newSet.has(brand.slug)) {
+                              newSet.delete(brand.slug);
+                            } else {
+                              newSet.add(brand.slug);
+                            }
+                            setExpandedBrands(newSet);
+                          }}
+                        >
+                          {expandedBrands.has(brand.slug) ? "Show less" : "Show more"}
+                        </button>
+                      )}
+                    </div>
                     {brand.models?.length > 0 ? (
                       <div className="space-y-2">
-                        {brand.models.map((model) => (
+                        {(expandedBrands.has(brand.slug) ? brand.models : brand.models.slice(0, 5)).map((model) => (
                           <div
                             key={model.slug}
                             className="flex items-center justify-between gap-4 p-3 bg-background rounded-md border border-border"
