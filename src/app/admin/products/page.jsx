@@ -41,6 +41,38 @@ export default function AdminProducts() {
     setCurrentPage(page);
   };
 
+  const getPaginationPages = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages = [];
+    pages.push(1);
+
+    if (currentPage > 3) {
+      pages.push("...");
+    }
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) {
+        pages.push(i);
+      }
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push("...");
+    }
+
+    if (!pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
   const loadParts = async ({ q, brand, category, nameOnly } = {}) => {
     try {
       setLoading(true);
@@ -281,20 +313,26 @@ export default function AdminProducts() {
             Prev
           </button>
           
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              type="button"
-              onClick={() => goToPage(page)}
-              className={`pagination-button px-3 py-1 text-sm border rounded transition-colors ${
-                currentPage === page
-                  ? "bg-copper text-white border-copper font-medium"
-                  : "bg-secondary/30 border-border hover:bg-secondary"
-              }`}
-            >
-              {page}
-            </button>
-          ))}
+          {getPaginationPages().map((page, idx) =>
+            page === "..." ? (
+              <span key={`dots-${idx}`} className="px-2 py-1 text-sm text-muted-foreground">
+                ...
+              </span>
+            ) : (
+              <button
+                key={page}
+                type="button"
+                onClick={() => goToPage(page)}
+                className={`pagination-button px-3 py-1 text-sm border rounded transition-colors ${
+                  currentPage === page
+                    ? "bg-copper text-white border-copper font-medium"
+                    : "bg-secondary/30 border-border hover:bg-secondary"
+                }`}
+              >
+                {page}
+              </button>
+            )
+          )}
 
           <button
             type="button"
