@@ -229,25 +229,17 @@ export default function AdminProducts() {
               {displayedParts.map((part) => (
                 <tr key={part.sku} className="border-b border-border">
                   <td className="px-6 py-3 flex items-center gap-2">
-<<<<<<< HEAD
-                    {part.gallery?.[0]?.url ? (
-                <img
-                  src={part.gallery[0].url}
-                  alt={part.name}
-                  className="h-10 w-10 object-cover rounded"
-                />
-              ) : (
-                <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">N/A</span>
-                </div>
-              )}
-=======
-                    <img
-                      src={(Array.isArray(part.gallery) && part.gallery[0]?.url) || "/placeholder.png"}
-                      alt={part.name}
-                      className="h-10 w-10 object-cover rounded"
-                    />
->>>>>>> d447521dc2ed2fd33b360fec0a5f1ba97ad4b0e0
+                    {(part.gallery?.[0]?.url || part.images?.[0]) ? (
+                      <img
+                        src={part.gallery?.[0]?.url || part.images?.[0]}
+                        alt={part.name}
+                        className="h-10 w-10 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      </div>
+                    )}
                     {part.name}
                   </td>
                   <td className="px-6 py-3">{part.sku}</td>
