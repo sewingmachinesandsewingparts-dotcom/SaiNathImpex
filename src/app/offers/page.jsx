@@ -14,7 +14,7 @@ export default function OffersPage() {
           </Link>{" "}
           / Offers
         </nav>
-        <SalesSpotlight />
+        <HorizontalSalesSpotlight />
       </div>
     </PageShell>
   );
