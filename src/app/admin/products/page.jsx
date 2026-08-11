@@ -268,6 +268,44 @@ export default function AdminProducts() {
           </table>
         </div>
       )}
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => goToPage(currentPage - 1)}
+            className="pagination-button px-3 py-1 bg-secondary/30 border border-border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+          >
+            Prev
+          </button>
+          
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              type="button"
+              onClick={() => goToPage(page)}
+              className={`pagination-button px-3 py-1 text-sm border rounded transition-colors ${
+                currentPage === page
+                  ? "bg-copper text-white border-copper font-medium"
+                  : "bg-secondary/30 border-border hover:bg-secondary"
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => goToPage(currentPage + 1)}
+            className="pagination-button px-3 py-1 bg-secondary/30 border border-border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </AdminShell>
   );
 }
