@@ -1,6 +1,7 @@
 for adding the documents on the mongoDB
 mongoimport --uri="mongodb+srv://sewingmachinesandsewingparts_db_user:wL1gCeAs3eTqtyas@cluster0.8p8rrp9.mongodb.net/stitch-parts-finder?appName=Cluster0" --collection=parts --file=018.json --jsonArray
 
+<<<<<<< HEAD
 
 
 
@@ -114,3 +115,5 @@ HX 81120,5212TP0051,
 (ALL DOCUMENTS HERE THAT EXTRACT FROM THE PDF)
  all docments data in json 
 
+=======
+>>>>>>> d447521dc2ed2fd33b360fec0a5f1ba97ad4b0e0
