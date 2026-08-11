@@ -1,10 +1,14 @@
+/*
+  Updated Admin Products page – added a second button "Assign Images" next to "Add product".
+  The button links to a new admin UI for bulk image assignment.
+*/
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AdminShell } from "@/src/components/admin-shell";
 import { formatINR } from "@/src/lib/format";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/src/utils/api";
 import "./pagination.css";
@@ -20,7 +24,6 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 14;
   const [currentPage, setCurrentPage] = useState(1);
-
 
   // Reset to page 1 when the full list changes (e.g., after filtering)
   useEffect(() => {
@@ -181,15 +184,27 @@ export default function AdminProducts() {
         <div className="text-sm text-muted-foreground">
           {parts.length} result{parts.length === 1 ? "" : "s"}
           {allParts.length && parts.length !== allParts.length ? (
-            <> of {allParts.length} total</>
+            <>
+              {' '}of {allParts.length} total
+            </>
           ) : ""}
         </div>
-        <Link
-          href="/admin/products/new"
-          className="h-10 px-5 bg-ink text-bone hover:bg-copper font-mono text-[11px] uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add product
-        </Link>
+        <div className="flex gap-3">
+          {/* Second button – Bulk Assign Images */}
+          <Link
+            href="/admin/products/bulk-assign"
+            className="h-10 px-5 bg-emerald-700 text-bone hover:bg-emerald-600 font-mono text-[11px] uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
+          >
+            <Upload className="h-3.5 w-3.5" /> Bulk Assign Images
+          </Link>
+          {/* Original Add product button */}
+          <Link
+            href="/admin/products/new"
+            className="h-10 px-5 bg-ink text-bone hover:bg-copper font-mono text-[11px] uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add product
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -211,99 +226,44 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-          {displayedParts.map((p) => (
-            <tr key={p.sku} className="border-t border-border hover:bg-secondary/30">
-              <td className="px-6 py-3 flex items-center gap-3">
+              {displayedParts.map((part) => (
+                <tr key={part.sku} className="border-b border-border">
+                  <td className="px-6 py-3 flex items-center gap-2">
+                    {part.gallery?.[0]?.url ? (
                 <img
-                  src={p.images?.[0] || ""}
-                  alt=""
-                  className="h-10 w-10 object-cover hairline shrink-0"
+                  src={part.gallery[0].url}
+                  alt={part.name}
+                  className="h-10 w-10 object-cover rounded"
                 />
-                <div className="min-w-0">
-                  <div className="font-display text-lg truncate">{p.name}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">{p.id1}</div>
+              ) : (
+                <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground">N/A</span>
                 </div>
-              </td>
-              <td className="font-mono text-xs">{p.sku}</td>
-              <td>{p.brandName}</td>
-              <td className="font-mono">{formatINR(p.price)}</td>
-              <td>
-                <span className={`font-mono text-xs ${p.stock < 25 ? "text-destructive" : ""}`}> {p.stock} </span>
-              </td>
-              <td className="font-mono text-xs">{p.rating} ★</td>
-              <td className="px-6 py-3 flex items-center gap-2">
-                <Link
-                  href={`/admin/products/${p.sku}`}
-                  className="h-8 w-8 inline-flex items-center justify-center hover:bg-copper/20 text-copper transition-colors"
-                  title="Edit"
-                >
-                  <Edit className="h-4 w-4" />
-                </Link>
-                <button
-                  onClick={() => handleDelete(p.sku)}
-                  className="h-8 w-8 inline-flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <tr>
-              <td colSpan={7} className="px-6 py-3 flex justify-center items-center gap-2">
-                <td colSpan={7} className="px-6 py-3 flex justify-center items-center gap-2">
-                  <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
-                  >
-                    Prev
-                  </button>
-                  {/* Page numbers */}
-                  {(() => {
-                    const pages = [];
-                    const total = totalPages;
-                    const cur = currentPage;
-                    const range = (start, end) => {
-                      for (let i = start; i <= end; i++) pages.push(i);
-                    };
-                    if (total <= 7) {
-                      range(1, total);
-                    } else {
-                      range(1, 2);
-                      if (cur > 4) pages.push('...');
-                      const start = Math.max(3, cur - 1);
-                      const end = Math.min(total - 2, cur + 1);
-                      range(start, end);
-                      if (cur < total - 3) pages.push('...');
-                      range(total - 1, total);
-                    }
-                    return pages.map((p, idx) => (
-                      p === '...'
-                        ? <span key={`ellipsis-${idx}`} className="px-2">...</span>
-                        : <button
-                            key={p}
-                            onClick={() => goToPage(p)}
-                            disabled={p === cur}
-                            className={`pagination-button px-2 py-1 rounded ${p === cur ? 'active' : ''}`}
-                          >
-                            {p}
-                          </button>
-                    ));
-                  })()}
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="pagination-button px-3 py-1 bg-secondary/30 rounded disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </td>
-              </td>
-            </tr>
-          )}
+              )}
+                    {part.name}
+                  </td>
+                  <td className="px-6 py-3">{part.sku}</td>
+                  <td className="px-6 py-3">{part.brandName || part.brandSlug}</td>
+                  <td className="px-6 py-3">{formatINR(part.price)}</td>
+                  <td className="px-6 py-3">{part.stock ?? "—"}</td>
+                  <td className="px-6 py-3">{part.rating ?? "—"}</td>
+                  <td className="px-6 py-3 flex gap-2 items-center">
+                    <Link
+                      href={`/admin/products/edit/${part.sku}`}
+                      className="text-ink hover:text-copper"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(part.sku)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

@@ -94,8 +94,18 @@ export async function ensureBrandAndModel({ brandName, modelName, isCategoryMode
   }
 
   if (resolvedModelName) {
-    const hasModel = brand.models?.some(
-      (model) => model.name.toLowerCase() === resolvedModelName.toLowerCase(),
+    // Ensure a brand document exists before adding a model
+    if (!brand) {
+      // Create a minimal brand if none exists (used for category-mode products)
+      brand = await Brand.create({
+        slug: ensureSlug(resolvedBrandName || 'generic'),
+        name: resolvedBrandName || 'Generic',
+        isBrand: !isCategoryMode,
+        models: [],
+      });
+    }
+    const hasModel = Array.isArray(brand.models) && brand.models.some(
+      (model) => typeof model?.name === "string" && model.name.toLowerCase() === resolvedModelName.toLowerCase()
     );
     if (!hasModel) {
       brand.models = brand.models || [];

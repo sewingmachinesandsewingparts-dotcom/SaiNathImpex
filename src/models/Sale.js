@@ -12,11 +12,13 @@ const saleSchema = new mongoose.Schema(
     },
     scopeRef: { type: String, required: true },
     percent: { type: Number, required: true },
+    description: { type: String, required: true },
+    image: { type: String, required: true },
     endsAt: { type: Date, required: true },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 const Sale = mongoose.models.Sale || mongoose.model("Sale", saleSchema);

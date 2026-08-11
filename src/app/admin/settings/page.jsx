@@ -9,7 +9,13 @@ export default function AdminSettings() {
   const [brands, setBrands] = useState([]);
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [deletingSlug, setDeletingSlug] = useState("");
+  const [expandedSpecs, setExpandedSpecs] = useState(new Set());
+  const [expandedBrands, setExpandedBrands] = useState(new Set());
   const [brandError, setBrandError] = useState("");
+  // No reset needed; expandedBrands persists
+
+  // Existing states remain unchanged
+
 
   useEffect(() => {
     const loadBrands = async () => {
@@ -143,10 +149,27 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Models</div>
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-copper text-bone rounded-md text-xs"
+                          onClick={() => setExpandedBrands(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(brand.slug)) {
+                              newSet.delete(brand.slug);
+                            } else {
+                              newSet.add(brand.slug);
+                            }
+                            return newSet;
+                          })}
+                        >
+                          {expandedBrands.has(brand.slug) ? "Show less" : "Show more"}
+                        </button>
+                      </div>
                     {brand.models?.length > 0 ? (
                       <div className="space-y-2">
-                        {brand.models.map((model) => (
+                        {(expandedBrands.has(brand.slug) ? brand.models : brand.models.slice(0, 4)).map((model) => (
                           <div
                             key={model.slug}
                             className="flex items-center justify-between gap-4 p-3 bg-background rounded-md border border-border"
@@ -154,6 +177,36 @@ export default function AdminSettings() {
                             <div>
                               <div className="font-medium">{model.name}</div>
                               <div className="text-xs text-muted-foreground">slug: {model.slug}</div>
+                              {Object.keys(model.specs || {}).length > 0 && (
+                                <div className="mt-1">
+                                  {expandedSpecs.has(`${brand.slug}:${model.slug}`) ? (
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                      {Object.entries(model.specs).map(([key, value]) => (
+                                        <React.Fragment key={key}>
+                                          <dt className="font-medium capitalize">{key}</dt>
+                                          <dd>{String(value)}</dd>
+                                        </React.Fragment>
+                                      ))}
+                                    </dl>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="mt-1 text-copper underline"
+                                    onClick={() => {
+                                      const newSet = new Set(expandedSpecs);
+                                      const id = `${brand.slug}:${model.slug}`;
+                                      if (newSet.has(id)) {
+                                        newSet.delete(id);
+                                      } else {
+                                        newSet.add(id);
+                                      }
+                                      setExpandedSpecs(newSet);
+                                    }}
+                                  >
+                                    {expandedSpecs.has(`${brand.slug}:${model.slug}`) ? "Show less" : "Show more"}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                             <button
                               type="button"

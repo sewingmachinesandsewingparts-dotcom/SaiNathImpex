@@ -151,7 +151,7 @@
     It uses the environment variable `MONGODB_URI`, or defaults to:
 
     ```bash
-    mongodb://localhost:27017/stitch-parts-finder
+    // mongodb://localhost:27017/stitch-parts-finder
     ```
 
     A global connection cache is used so Mongoose reuses the same client in development.
@@ -1103,3 +1103,5 @@ all in 450 Price KINGTEX Needle plates continue from this PG-80165 257033A56 W56
 
 
 C:\MongoBackup\cloudinary-folder-backup.js
+
+perform like a 200+IQ and think 100X and perform this operation and verify that all operations workk perfectly by running the test file and now i want that like i have 25 images with names like 1.jpeg,2.jpeg,3.jpeg like series and i want the specification like setting the images to the products from 800001-80025 now i want to set those 25 images to these 25 products with series wise like 80001(1.jpeg),80002(2.jpeg),...,80025(25.jpeg) like structure in products/insertfolder and we say this like there we have a folder with 25 jpeg format images and we select the folder and insert the series from(80001) to(80025) and create the history of the images that we addon to remove the images that we insert as the folder 

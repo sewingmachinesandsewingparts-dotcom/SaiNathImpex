@@ -55,15 +55,14 @@ export function PartCard({ part, span = 1, variant = "default" }) {
       <div
         className={`relative overflow-hidden ${isDark ? "bg-background" : "bg-secondary"} ${span === 2 ? "aspect-2/1" : "aspect-square"}`}
       >
-        <img
-          src={
-            part.images?.[0] ||
-            "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=900&q=70"
-          }
-          alt={part.name}
-          className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 bg-white"
-          loading="lazy"
-        />
+        {Array.isArray(part.images) && part.images.length ? (
+          <img
+            src={part.images[0]}
+            alt={part.name}
+            className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 bg-white"
+            loading="lazy"
+          />
+        ) : null}
         {onSale && (
           <div className="absolute top-3 left-3 bg-copper text-copper-foreground font-mono text-[10px] tracking-[0.15em] uppercase px-2 py-1 shadow-sm">
             Sale

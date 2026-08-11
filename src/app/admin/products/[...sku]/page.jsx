@@ -391,15 +391,20 @@ export default function EditProductPage() {
 
     try {
       const form = new FormData(event.currentTarget);
+      // Preserve existing images unless the user has selected new ones.
+      const newFiles = imageGroups.flat().filter((file) => file && typeof file.size === "number");
+      // Always remove any previous images field to avoid empty uploads.
       form.delete("images");
-      const uniqueFiles = new Map();
-      imageGroups.flat().forEach((file) => {
-        if (!file || typeof file.size !== "number") return;
-        const fileKey = `${file.name}|${file.size}|${file.lastModified}`;
-        if (!uniqueFiles.has(fileKey)) uniqueFiles.set(fileKey, file);
-      });
-      for (const file of uniqueFiles.values()) {
-        form.append("images", file);
+      if (newFiles.length > 0) {
+        // Add the newly selected files.
+        const uniqueFiles = new Map();
+        newFiles.forEach((file) => {
+          const fileKey = `${file.name}|${file.size}|${file.lastModified}`;
+          if (!uniqueFiles.has(fileKey)) uniqueFiles.set(fileKey, file);
+        });
+        for (const file of uniqueFiles.values()) {
+          form.append("images", file);
+        }
       }
       form.set("mode", mode);
 
@@ -509,6 +514,11 @@ export default function EditProductPage() {
         method: "PUT",
         data: form,
       });
+
+      // Optimistically update UI: remove deleted images from state so they disappear immediately
+      setExistingImages((prev) => prev.filter((img) => !deletedImages.includes(img)));
+      setDeletedImages([]);
+      setImageGroups([[]]);
 
       setStatusMessage("Product updated successfully.");
       setTimeout(() => router.push(`/admin/products/${encodeURIComponent(generatedSku)}`), 1500);

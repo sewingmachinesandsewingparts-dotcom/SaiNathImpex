@@ -8,6 +8,7 @@ import { PartCard } from "@/src/components/part-card";
 import { formatINR } from "@/src/lib/format";
 import { useCart } from "@/src/lib/cart-context";
 import api from "@/src/utils/api";
+import HorizontalSalesSpotlight from "@/src/components/ui/horizontal-sales-spotlight.jsx";
 
 function buildSaleLink(sale) {
   if (!sale || !sale.scope) return "/catalog";
@@ -193,106 +194,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SALE TICKER */}
-      {sales.length > 0 && (
-        <section className="bg-ink text-bone overflow-hidden border-y border-border">
-          <div className="mx-auto max-w-7xl px-4 py-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-6">
-              <div>
-                <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-copper mb-2 flex items-center gap-2">
-                  <Tag className="h-4 w-4" /> HOT DEALS
-                </div>
-                <h2 className="font-display text-3xl md:text-4xl">Sale spotlight</h2>
-                <p className="mt-2 max-w-2xl text-sm text-bone/80">
-                  Promote active offers by category, brand, or price range with a compact carousel layout. Showcase one headline deal plus quick previews of the next offers.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {sales.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setActiveSaleIndex(index)}
-                    className={`h-3 w-3 rounded-full transition-colors ${
-                      index === activeSaleIndex ? "bg-copper" : "bg-bone/40"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[1.7fr_0.9fr]">
-              <div className="group relative overflow-hidden rounded-4xl bg-white/5 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-1">
-                <div className="absolute inset-0 bg-linear-to-br from-copper/10 via-transparent to-ink/5 pointer-events-none" />
-                <div className="relative z-10 flex flex-col justify-between gap-6">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-copper/40 bg-copper/10 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-copper">
-                      {sales[activeSaleIndex].scope === "price_range"
-                        ? "Price range"
-                        : sales[activeSaleIndex].scope.replace("_", " ")}
-                    </div>
-                    <h3 className="font-display text-4xl leading-tight mt-5">
-                      {sales[activeSaleIndex].percent}% off
-                    </h3>
-                    <p className="mt-3 text-lg font-semibold">{sales[activeSaleIndex].name}</p>
-                    <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-                      Applies to {sales[activeSaleIndex].scope === "all"
-                        ? "all parts"
-                        : `${sales[activeSaleIndex].scopeRef.replace("_", " ")} ${sales[activeSaleIndex].scope}`}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-copper/10 px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-copper">
-                      Ends {new Date(sales[activeSaleIndex].endsAt).toLocaleDateString()}
-                    </span>
-                    <Link
-                      href={buildSaleLink(sales[activeSaleIndex])}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-copper px-5 py-3 text-[12px] uppercase tracking-[0.2em] text-copper-foreground transition hover:bg-copper/90"
-                    >
-                      Browse deals <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-3 lg:max-h-80">
-                {sales
-                  .slice(0, 3)
-                  .map((sale, idx) => (
-                    <div
-                      key={sale.id}
-                      className={`min-w-55 shrink-0 rounded-2xl border border-white/10 p-4 transition hover:border-copper/40 hover:bg-white/5 snap-start ${
-                        idx === activeSaleIndex ? "ring-2 ring-copper/30 bg-white/5" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-                          {sale.scope.replace("_", " ")}
-                        </span>
-                        <span className="font-display text-xl text-copper">{sale.percent}%</span>
-                      </div>
-                      <h4 className="mt-3 text-base font-semibold leading-snug">{sale.name}</h4>
-                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                        {sale.scopeRef.replace("_", " ")}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-copper">
-                        <span>Ends {new Date(sale.endsAt).toLocaleDateString()}</span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveSaleIndex(idx)}
-                          className="font-medium hover:text-bone"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* SALE SPOTLIGHT */}
+      <HorizontalSalesSpotlight />
 
       {/* SHOP BY BRAND */}
       <section className="mx-auto max-w-7xl px-4 py-20">
