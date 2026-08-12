@@ -270,6 +270,144 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FLASH SALES SECTION */}
+      {sales.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-16 border-t border-border">
+          <div className="flex justify-between items-end mb-8">
+            <div>
+              <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-copper">
+                Limited Time Deals
+              </div>
+              <h2 className="font-display text-5xl mt-1">Top Deals</h2>
+            </div>
+            <Link
+              href="/offers"
+              className="font-mono text-xs uppercase tracking-[0.2em] text-copper hover:text-ink transition-colors"
+            >
+              View All →
+            </Link>
+          </div>
+
+          {/* Top 3 Flash Deals */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {sales.slice(0, 3).map((sale) => {
+              const discountPercent = sale.discountType === "percentage" ? sale.discountValue : 25;
+              const link = buildSaleLink(sale);
+              const claimed = sale.claimedPercent ?? 75;
+
+              return (
+                <div
+                  key={sale._id || sale.title}
+                  className="bg-card hairline rounded-xl border border-border relative overflow-hidden group hover:border-copper transition-colors flex flex-col justify-between"
+                >
+                  <div className="absolute top-4 right-4 bg-copper text-bone font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded z-10 font-bold shadow">
+                    SAVE {discountPercent}%
+                  </div>
+
+                  <div className="h-64 w-full bg-white relative flex items-center justify-center p-6 border-b border-border">
+                    {sale.bannerUrl ? (
+                      <img
+                        src={sale.bannerUrl}
+                        alt={sale.title}
+                        className="object-contain max-h-full max-w-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="font-display text-4xl text-muted-foreground/30 uppercase tracking-wider">
+                        {sale.scopeRef || "DEAL"}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 flex flex-col flex-grow justify-between">
+                    <div>
+                      <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-copper mb-2">
+                        {sale.scope ? `${sale.scope} offer` : "Flash Sale"}
+                      </div>
+                      <h3 className="font-display text-2xl font-bold text-ink mb-4 line-clamp-2">
+                        {sale.title}
+                      </h3>
+
+                      {/* Claimed Progress Bar */}
+                      <div className="mb-6">
+                        <div className="flex justify-between font-mono text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+                          <span>Claimed: {claimed}%</span>
+                          {claimed >= 80 ? (
+                            <span className="text-copper animate-pulse font-bold">Almost Gone!</span>
+                          ) : (
+                            <span className="text-emerald-600 font-bold">In Stock</span>
+                          )}
+                        </div>
+                        <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden">
+                          <div className="h-full bg-copper" style={{ width: `${claimed}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pt-4 border-t border-border">
+                      <div>
+                        <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                          {sale.code || "LIMITED"}
+                        </div>
+                        <div className="font-display text-2xl text-ink font-bold">
+                          {sale.subtitle || "Special Price"}
+                        </div>
+                      </div>
+                      <Link
+                        href={link}
+                        className="bg-ink text-bone font-mono text-xs uppercase tracking-[0.15em] px-5 py-3 rounded hover:bg-copper transition-colors"
+                      >
+                        Grab Deal
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* More Trending Sales */}
+          {sales.length > 3 && (
+            <>
+              <h3 className="font-display text-3xl mb-6">More Trending Sales</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {sales.slice(3, 7).map((sale) => (
+                  <div
+                    key={sale._id || sale.title}
+                    className="bg-card hairline rounded-xl border border-border p-4 flex flex-col justify-between relative group hover:border-copper transition-colors"
+                  >
+                    <div className="absolute top-3 right-3 bg-copper text-bone font-mono text-[9px] font-bold px-2 py-1 rounded z-10">
+                      -{sale.discountType === "percentage" ? sale.discountValue : 20}%
+                    </div>
+                    <div className="h-40 bg-white mb-4 rounded flex items-center justify-center p-3 border border-border">
+                      {sale.bannerUrl ? (
+                        <img
+                          src={sale.bannerUrl}
+                          alt={sale.title}
+                          className="object-contain max-h-full max-w-full group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="font-display text-xl text-muted-foreground/40">
+                          {sale.scopeRef || "SALE"}
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="font-display text-lg font-bold line-clamp-2 mb-3 text-ink">
+                      {sale.title}
+                    </h4>
+                    <Link
+                      href={buildSaleLink(sale)}
+                      className="mt-auto w-full text-center bg-ink text-bone hover:bg-copper font-mono text-[10px] uppercase tracking-widest py-2 rounded transition-colors"
+                    >
+                      View Sale
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {/* HOT COLLECTION */}
       {parts.length > 0 && (
         <section className="bg-ink text-bone border-y border-border">

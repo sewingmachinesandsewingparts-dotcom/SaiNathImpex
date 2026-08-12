@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { AdminShell } from "@/src/components/admin-shell";
+import { toast } from "sonner";
 import api from "@/src/utils/api";
 
 const scopeOptions = [
@@ -15,12 +16,69 @@ const scopeOptions = [
 
 const stitchTypes = ["Lockstitch", "Overlock", "Chainstitch", "Coverstitch"];
 
+// Live Countdown Timer Component
+function SaleCountdown({ endsAt }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    if (!endsAt) return;
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const end = new Date(endsAt).getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft("EXPIRED");
+        setIsExpired(true);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const dStr = days > 0 ? `${days}d ` : "";
+      const hStr = String(hours).padStart(2, "0");
+      const mStr = String(minutes).padStart(2, "0");
+      const sStr = String(seconds).padStart(2, "0");
+
+      setTimeLeft(`${dStr}${hStr}:${mStr}:${sStr}`);
+      setIsExpired(false);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [endsAt]);
+
+  return (
+    <span
+      className={`font-mono text-xs px-2 py-1 rounded inline-block font-bold ${
+        isExpired
+          ? "bg-red-500/10 text-red-600 border border-red-500/20"
+          : "bg-copper/10 text-copper border border-copper/30 animate-pulse"
+      }`}
+    >
+      {timeLeft || "Calculating..."}
+    </span>
+  );
+}
+
 export default function AdminSales() {
   const [sales, setSales] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saleName, setSaleName] = useState("");
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [claimedPercent, setClaimedPercent] = useState(75);
+  const [discountType, setDiscountType] = useState("percentage");
+  const [discountValue, setDiscountValue] = useState(10);
   const [scope, setScope] = useState("brand");
   const [scopeRef, setScopeRef] = useState("");
   const [percent, setPercent] = useState(10);
@@ -47,11 +105,6 @@ export default function AdminSales() {
     return others?.models || [];
   }, [brands]);
 
-  const modelOptions = useMemo(() => {
-    const brand = brands.find((b) => b.slug === scopeRef);
-    return brand?.models || [];
-  }, [brands, scopeRef]);
-
   const buildScopeRef = () => {
     if (scope === "all") return "all";
     if (scope === "price_range") return `${priceMin || 0}-${priceMax || 0}`;
@@ -64,6 +117,12 @@ export default function AdminSales() {
 
     const payload = {
       name: saleName,
+      title: title || saleName,
+      subtitle,
+      bannerUrl,
+      claimedPercent: Number(claimedPercent),
+      discountType,
+      discountValue: Number(discountValue || percent),
       scope,
       scopeRef: buildScopeRef(),
       percent: Number(percent),
@@ -86,13 +145,7 @@ export default function AdminSales() {
         }
         return [saved, ...prev];
       });
-      setSaleName("");
-      setPercent(10);
-      setEndsAt("");
-      setScopeRef("");
-      setPriceMin("");
-      setPriceMax("");
-      setEditSaleId("");
+      handleCancelEdit();
       toast.success(editSaleId ? "Sale updated successfully." : "Sale created successfully.");
     } catch (error) {
       console.error(error);
@@ -104,12 +157,18 @@ export default function AdminSales() {
 
   const handleEditSale = (sale) => {
     setEditSaleId(sale.id);
-    setSaleName(sale.name);
+    setSaleName(sale.name || "");
+    setTitle(sale.title || sale.name || "");
+    setSubtitle(sale.subtitle || "");
+    setBannerUrl(sale.bannerUrl || sale.image || "");
+    setClaimedPercent(sale.claimedPercent ?? 75);
+    setDiscountType(sale.discountType || "percentage");
+    setDiscountValue(sale.discountValue || sale.percent || 10);
     setScope(sale.scope);
     setScopeRef(sale.scopeRef);
-    setPercent(sale.percent);
-    setEndsAt(sale.endsAt.slice(0, 10));
-    const [min, max] = sale.scopeRef.split("-");
+    setPercent(sale.percent || 10);
+    setEndsAt(sale.endsAt ? new Date(sale.endsAt).toISOString().slice(0, 16) : "");
+    const [min, max] = (sale.scopeRef || "").split("-");
     setPriceMin(min || "");
     setPriceMax(max || "");
   };
@@ -117,6 +176,12 @@ export default function AdminSales() {
   const handleCancelEdit = () => {
     setEditSaleId("");
     setSaleName("");
+    setTitle("");
+    setSubtitle("");
+    setBannerUrl("");
+    setClaimedPercent(75);
+    setDiscountType("percentage");
+    setDiscountValue(10);
     setScope("brand");
     setScopeRef("");
     setPercent(10);
@@ -126,7 +191,6 @@ export default function AdminSales() {
   };
 
   const handleDeleteSale = async (id) => {
-    // TODO: replace confirm with a custom modal if you want a non-blocking confirmation flow.
     if (!confirm("Delete this sale?")) return;
     try {
       await api("/api/sales", {
@@ -144,7 +208,7 @@ export default function AdminSales() {
   };
 
   return (
-    <AdminShell title="Sales" subtitle="Create and manage promotions">
+    <AdminShell title="Sales & Promotions" subtitle="Manage flash sales, images, and live timers">
       <div className="space-y-8">
         <form onSubmit={handleCreateSale} className="hairline bg-card p-6 space-y-6">
           {editSaleId && (
@@ -155,13 +219,15 @@ export default function AdminSales() {
               </button>
             </div>
           )}
-          <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
+
+          {/* Row 1: Name, Title, Subtitle */}
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                Sale name
+                Internal Name *
               </span>
               <input
-                placeholder="Summer workshop sale"
+                placeholder="Summer Flash Sale"
                 value={saleName}
                 onChange={(e) => setSaleName(e.target.value)}
                 className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
@@ -170,24 +236,103 @@ export default function AdminSales() {
             </label>
             <label className="block">
               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                Discount percent
+                Display Title
+              </span>
+              <input
+                placeholder="AuraX Pro ANC Headphones"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Subtitle / Badge
+              </span>
+              <input
+                placeholder="₹1,499.00 Special"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+              />
+            </label>
+          </div>
+
+          {/* Row 2: Image URL, Claimed %, Ends At (Datetime) */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Image / Banner URL
+              </span>
+              <input
+                type="url"
+                placeholder="https://example.com/deal-image.png"
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Claimed Progress (%)
               </span>
               <input
                 type="number"
-                min={1}
-                max={90}
-                value={percent}
-                onChange={(e) => setPercent(e.target.value)}
+                min={0}
+                max={100}
+                value={claimedPercent}
+                onChange={(e) => setClaimedPercent(e.target.value)}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Timer End Date & Time *
+              </span>
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
                 className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
                 required
               />
             </label>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
+          {/* Row 3: Discount Type, Discount Value, Scope */}
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                Sale type
+                Discount Type
+              </span>
+              <select
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value)}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+              >
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (₹)</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Discount Value *
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={discountValue}
+                onChange={(e) => {
+                  setDiscountValue(e.target.value);
+                  setPercent(e.target.value);
+                }}
+                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
+                Applicable Scope
               </span>
               <select
                 value={scope}
@@ -204,20 +349,9 @@ export default function AdminSales() {
                 ))}
               </select>
             </label>
-            <label className="block">
-              <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                Ends at
-              </span>
-              <input
-                type="date"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                className="mt-2 w-full hairline bg-background px-3 py-2 text-sm outline-none"
-                required
-              />
-            </label>
           </div>
 
+          {/* Scope Ref Dynamic Fields */}
           {scope === "brand" && (
             <label className="block">
               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
@@ -261,7 +395,7 @@ export default function AdminSales() {
               </label>
               <label className="block">
                 <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                  Model slug
+                  Model Slug
                 </span>
                 <input
                   placeholder="model-slug"
@@ -298,7 +432,7 @@ export default function AdminSales() {
           {scope === "stitch_type" && (
             <label className="block">
               <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                Stitch type
+                Stitch Type
               </span>
               <select
                 value={scopeRef}
@@ -320,7 +454,7 @@ export default function AdminSales() {
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                  Min price
+                  Min Price
                 </span>
                 <input
                   type="number"
@@ -333,7 +467,7 @@ export default function AdminSales() {
               </label>
               <label className="block">
                 <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                  Max price
+                  Max Price
                 </span>
                 <input
                   type="number"
@@ -347,12 +481,22 @@ export default function AdminSales() {
             </div>
           )}
 
+          {/* Image Preview Box */}
+          {bannerUrl && (
+            <div className="flex items-center gap-4 p-3 bg-secondary/20 rounded border border-border">
+              <img src={bannerUrl} alt="Preview" className="h-16 w-16 object-contain rounded bg-white border border-border" />
+              <div className="text-xs text-muted-foreground font-mono">
+                Image Preview
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={saving}
             className="h-12 px-6 bg-ink text-bone hover:bg-copper transition-colors font-mono text-xs uppercase tracking-[0.2em]"
           >
-            {saving ? "Saving…" : "Create sale"}
+            {saving ? "Saving…" : editSaleId ? "Update sale" : "Create sale"}
           </button>
         </form>
 
@@ -365,46 +509,66 @@ export default function AdminSales() {
             <table className="w-full text-sm">
               <thead className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground border-b border-border">
                 <tr>
-                  <th className="px-6 py-3">Sale ID</th>
-                  <th>Name</th>
+                  <th className="px-6 py-3">Image</th>
+                  <th>ID / Name</th>
                   <th>Scope</th>
-                  <th>Scope ref</th>
                   <th>Discount</th>
-                  <th>Ends</th>
-                  <th className="text-right">Actions</th>
+                  <th>Claimed</th>
+                  <th>Live Timer</th>
+                  <th className="text-right px-6 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {sales.map((s) => (
-                  <tr key={s.id} className="border-t border-border hover:bg-secondary/30">
-                    <td className="px-6 py-3 font-mono">{s.id}</td>
-                    <td>{s.name}</td>
-                    <td className="font-mono uppercase tracking-[0.15em] text-muted-foreground">{s.scope.replace("_", " ")}</td>
-                    <td className="font-mono text-xs text-muted-foreground">{s.scopeRef}</td>
-                    <td className="font-mono">{s.percent}%</td>
-                    <td className="text-muted-foreground">{new Date(s.endsAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-3 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditSale(s)}
-                        className="text-copper underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSale(s.id)}
-                        className="text-destructive underline"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {sales.map((s) => {
+                  const img = s.bannerUrl || s.image;
+                  return (
+                    <tr key={s.id} className="border-t border-border hover:bg-secondary/30">
+                      <td className="px-6 py-3">
+                        {img ? (
+                          <img src={img} alt={s.name} className="h-12 w-12 object-contain rounded bg-white border border-border" />
+                        ) : (
+                          <div className="h-12 w-12 bg-muted rounded flex items-center justify-center font-mono text-[10px] text-muted-foreground">
+                            No Img
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <div className="font-semibold text-ink">{s.title || s.name}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{s.id}</div>
+                      </td>
+                      <td className="font-mono uppercase tracking-[0.15em] text-muted-foreground">
+                        {s.scope.replace("_", " ")} ({s.scopeRef})
+                      </td>
+                      <td className="font-mono font-bold text-copper">
+                        {s.discountType === "fixed" ? `₹${s.discountValue}` : `${s.percent || s.discountValue}%`}
+                      </td>
+                      <td className="font-mono">{s.claimedPercent ?? 75}%</td>
+                      <td className="py-3">
+                        <SaleCountdown endsAt={s.endsAt} />
+                      </td>
+                      <td className="px-6 py-3 text-right space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditSale(s)}
+                          className="text-copper underline font-mono text-xs"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSale(s.id)}
+                          className="text-red-600 underline font-mono text-xs"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {sales.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-6 py-8 text-center text-muted-foreground font-mono text-xs uppercase tracking-widest"
                     >
                       No sales found
