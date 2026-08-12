@@ -8,7 +8,6 @@ import { PartCard } from "@/src/components/part-card";
 import { formatINR } from "@/src/lib/format";
 import { useCart } from "@/src/lib/cart-context";
 import api from "@/src/utils/api";
-import HorizontalSalesSpotlight from "@/src/components/ui/horizontal-sales-spotlight.jsx";
 
 function buildSaleLink(sale) {
   if (!sale || !sale.scope) return "/catalog";
@@ -55,7 +54,7 @@ export default function Home() {
     // Fetch parts
     api("/api/parts")
       .then((res) => res.data)
-      .then((data) => setParts(data.slice(0, 8)))
+      .then((data) => setParts(data))
       .catch((err) => console.error("Error loading home parts:", err));
 
     // Fetch brands
@@ -72,18 +71,40 @@ export default function Home() {
   }, []);
 
   const brandStats = useMemo(() => {
-    const statsByBrand = brands.reduce((acc, brand) => {
-      acc[brand.slug] = { modelCount: 0, partsCount: 0, modelSlugs: new Set() };
-      return acc;
-    }, {});
+    const statsByBrand = {};
+
+    brands.forEach((brand) => {
+      statsByBrand[brand.slug] = {
+        groupKeys: new Set(),
+        partsCount: 0,
+      };
+    });
 
     parts.forEach((part) => {
-      const stat = statsByBrand[part.brandSlug];
-      if (!stat) return;
+      const partBrandSlug = part.brandSlug || (part.brandName ? part.brandName.toLowerCase().replace(/\s+/g, "-") : "");
+      
+      const targetSlug = Object.keys(statsByBrand).find(
+        (slug) => slug === partBrandSlug || slug === part.brandSlug
+      );
 
-      stat.partsCount += 1;
-      if (part.modelSlug) {
-        stat.modelSlugs.add(part.modelSlug);
+      if (targetSlug && statsByBrand[targetSlug]) {
+        statsByBrand[targetSlug].partsCount += 1;
+        const groupKey =
+          part?.linkedSeries?.series ||
+          part?.series?.code ||
+          part?.series?.[0]?.code ||
+          part?.series ||
+          part?.MCG ||
+          part?.id1 ||
+          part?.OEM ||
+          part?.id2 ||
+          part?.modelSlug ||
+          part?.sku ||
+          "";
+
+        if (groupKey) {
+          statsByBrand[targetSlug].groupKeys.add(groupKey);
+        }
       }
     });
 
@@ -91,10 +112,10 @@ export default function Home() {
       Object.entries(statsByBrand).map(([slug, stat]) => [
         slug,
         {
-          modelCount: stat.modelSlugs.size,
+          groupCount: stat.groupKeys.size,
           partsCount: stat.partsCount,
         },
-      ]),
+      ])
     );
   }, [brands, parts]);
 
@@ -194,9 +215,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SALE SPOTLIGHT */}
-      <HorizontalSalesSpotlight />
-
       {/* SHOP BY BRAND */}
       <section className="mx-auto max-w-7xl px-4 py-20">
         <div className="flex items-end justify-between mb-10">
@@ -215,7 +233,7 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {brands.map((b, i) => {
-            const stats = brandStats[b.slug] || { modelCount: 0, partsCount: 0 };
+            const stats = brandStats[b.slug] || { groupCount: 0, partsCount: 0 };
 
             return (
               <Link
@@ -227,7 +245,7 @@ export default function Home() {
               >
                 <div className="relative z-10">
                   <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground group-hover:text-copper">
-                    {stats.modelCount} models · {stats.partsCount} parts
+                    {stats.groupCount} models · {stats.partsCount} parts
                   </div>
                   <div
                     className={`font-display tracking-wide mt-1 ${i === 0 ? "text-7xl" : "text-3xl"}`}
