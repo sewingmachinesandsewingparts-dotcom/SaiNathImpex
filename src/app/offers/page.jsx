@@ -71,7 +71,10 @@ export default function OffersPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {sales.map((sale) => {
-              const discountPercent = sale.discountType === "percentage" ? sale.discountValue : 25;
+              const saveText =
+                sale.discountType === "fixed"
+                  ? `SAVE ₹${sale.discountValue || sale.percent}`
+                  : `SAVE ${sale.discountValue || sale.percent || 10}%`;
               const link = buildSaleLink(sale);
               const claimed = sale.claimedPercent ?? 75;
 
@@ -81,7 +84,7 @@ export default function OffersPage() {
                   className="bg-card hairline rounded-xl border border-border relative overflow-hidden group hover:border-copper transition-colors flex flex-col justify-between"
                 >
                   <div className="absolute top-4 right-4 bg-copper text-bone font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded z-10 font-bold shadow">
-                    SAVE {discountPercent}%
+                    {saveText}
                   </div>
 
                   <div className="h-64 w-full bg-white relative flex items-center justify-center p-6 border-b border-border">

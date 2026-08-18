@@ -242,7 +242,17 @@ export default function EditProductPage() {
         const response = await api(`/api/parts/${encodeURIComponent(sku)}`);
         const data = response.data;
         setProduct(data);
-        setExistingImages(data.images || []);
+        // Collect image URLs from multiple possible locations for backward compatibility
+        const legacyImages = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
+        const galleryImages = Array.isArray(data.gallery)
+          ? data.gallery.map((g) => g?.url).filter(Boolean)
+          : [];
+        // Some older records may store images under a generic media field
+        const mediaImages = Array.isArray(data.media)
+          ? data.media.map((m) => m?.url).filter(Boolean)
+          : [];
+        const combined = [...legacyImages, ...galleryImages, ...mediaImages];
+        setExistingImages(combined);
       } catch (error) {
         setStatusMessage(error.message);
       } finally {
@@ -409,7 +419,7 @@ export default function EditProductPage() {
       form.set("mode", mode);
 
       if (deletedImages.length > 0) {
-        deletedImages.forEach((url) => form.append("deletedImageUrls", url));
+        deletedImages.forEach((url) => form.append("deletedImages", url));
       }
 
       const explicitPartCode = form.get("partCode")?.toString().trim();
