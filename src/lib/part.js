@@ -591,7 +591,12 @@ export function buildPartUpdateData(
   brandData = {},
 ) {
   const values = parsePartFormData(formData);
-  const imageList = existingPart.images?.filter((img) => !deletedImageUrls.includes(img)) || [];
+  const existingImages = existingPart.images || [];
+  const existingGallery = existingPart.gallery || [];
+  const existingUrls = Array.from(new Set([...existingImages, ...existingGallery.map(g => g.url)]));
+  const remainingUrls = existingUrls.filter((url) => !deletedImageUrls.includes(url));
+  const finalUrls = [...remainingUrls, ...uploadedUrls];
+  
   const resolvedIdentifiers = resolveIdentifierFields(existingPart, values, formData);
 
   const updatedCompatibleBrands = formData.has("compatibleBrands")
@@ -654,7 +659,9 @@ export function buildPartUpdateData(
     aliases: formData.has("aliases") ? values.aliases : existingPart.aliases,
     compatibleBrands: updatedCompatibleBrands,
     linkedSeries: formData.has("linkedSeries") ? (values.linkedSeries || { series: "", products: [] }) : (existingPart.linkedSeries || { series: "", products: [] }),
-    images: [...imageList, ...uploadedUrls],
+    images: finalUrls,
+    // Update the gallery field to reflect the current set of images as simple objects.
+    gallery: finalUrls.map((url) => ({ url, type: "Gallery" })),
   };
 }
 
