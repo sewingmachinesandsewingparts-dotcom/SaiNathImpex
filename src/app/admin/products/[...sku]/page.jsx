@@ -419,7 +419,7 @@ export default function EditProductPage() {
       form.set("mode", mode);
 
       if (deletedImages.length > 0) {
-        deletedImages.forEach((url) => form.append("deletedImages", url));
+        deletedImages.forEach((url) => form.append("deletedImageUrls", url));
       }
 
       const explicitPartCode = form.get("partCode")?.toString().trim();
